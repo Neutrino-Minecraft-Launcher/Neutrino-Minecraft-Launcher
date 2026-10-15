@@ -1,0 +1,23 @@
+{
+  "languages": {
+    "Slint": {
+      "tab_size": 4,
+    },
+    "Rust": {
+      "tab_size": 4,
+    },
+  },
+  "tab_size": 2,
+  "colorize_brackets": false,
+  "inlay_hints": {
+    "show_background": true,
+    "enabled": true,
+  },
+  "show_whitespaces": "selection",
+  "line_ending": "enforce_lf",
+  "format_on_save": "on",
+  "indent_guides": {
+    "background_coloring": "disabled",
+    "coloring": "indent_aware",
+  },
+}
