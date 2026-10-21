@@ -9,7 +9,7 @@ Early-stage Slint + Rust desktop app. The UI is still the template counter, not 
 - Preview just the UI: `slint-viewer ui/app-window.slint`
 - Check one `.slint` file: `slint-viewer --check ui/app-window.slint`
 - Pre-finish checks: `cargo fmt --check`, then `cargo clippy -- -D warnings`, then `cargo test`
-- There is no CI or test harness yet; `cargo test` runs 0 tests and `tests/` does not exist. Use `cargo run` or `slint-viewer` to verify UI changes manually.
+- CI runs the same three checks on `windows-latest` for pushes to `main` and all PRs (`.github/workflows/ci.yml`). `cargo test` currently runs 0 tests and `tests/` does not exist, so use `cargo run` or `slint-viewer` to verify UI changes manually.
 
 ## How it is wired
 
