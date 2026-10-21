@@ -1,1 +1,9 @@
 * text=auto eol=lf
+
+*.png   binary
+*.ico   binary
+*.ttf   binary
+
+*.sh    text eol=lf
+*.bat   text eol=crlf   # Windows 批处理必须 CRLF
+*.svg   text

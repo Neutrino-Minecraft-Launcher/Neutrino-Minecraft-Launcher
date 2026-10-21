@@ -2,22 +2,31 @@
   "languages": {
     "Slint": {
       "tab_size": 4,
+      "formatter": "language_server",
+      "language_servers": ["slint"]
     },
     "Rust": {
       "tab_size": 4,
-    },
+      "formatter": {
+        "external": {
+          "command": "cargo",
+          "arguments": ["check"]
+        }
+      },
+      "language_servers": ["rust-analyzer"]
+    }
   },
   "tab_size": 2,
   "colorize_brackets": false,
   "inlay_hints": {
     "show_background": true,
-    "enabled": true,
+    "enabled": true
   },
   "show_whitespaces": "selection",
   "line_ending": "enforce_lf",
   "format_on_save": "on",
   "indent_guides": {
     "background_coloring": "disabled",
-    "coloring": "indent_aware",
-  },
+    "coloring": "indent_aware"
+  }
 }
