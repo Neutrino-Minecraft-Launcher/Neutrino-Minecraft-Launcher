@@ -17,7 +17,7 @@
     }
   },
   "tab_size": 2,
-  "colorize_brackets": false,
+  "colorize_brackets": true,
   "inlay_hints": {
     "show_background": true,
     "enabled": true

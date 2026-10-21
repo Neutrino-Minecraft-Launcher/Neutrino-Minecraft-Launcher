@@ -2,5 +2,19 @@
 # will have compiled files and executables
 /target/
 
-# Jetbrains
-/idea/
+# Delta worktrees/clones (local tool state)
+/.delta/
+
+# JetBrains IDEs
+# Keep shared project settings; ignore only machine/user-specific files.
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/dataSources/
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/httpRequests/
+.idea/terminal.xml
