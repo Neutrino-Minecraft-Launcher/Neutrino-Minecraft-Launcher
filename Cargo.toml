@@ -3,6 +3,18 @@ name = "neutrino_minecraft_launcher"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "neutrino_minecraft_launcher"
+path = "src/lib.rs"
+
+[[bin]]
+name = "neutrino_minecraft_launcher"
+path = "src/main.rs"
+
+[[bin]]
+name = "neutrino-install"
+path = "src/bin/neutrino-install.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -10,9 +22,27 @@ dotenvy = "0.15"
 minecraft-msa-auth = { version = "0.5.0", features = ["is_sync", "ureq"] }
 oauth2 = { version = "5.0.0", features = ["reqwest-blocking"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-slint = "1.18.1"
+sha1 = "0.10"
+thiserror = "2"
+# 注意：这里关掉了 `accessibility`（默认开启）。
+# 在本机 Windows 上，Slint 1.18 + accesskit_windows 0.34 创建窗口时
+# `SetPropW` 会返回 ERROR_NOT_ENOUGH_MEMORY 并 panic，导致启动即崩溃；
+# 去掉该特性后界面正常。需要读屏支持时可把 "accessibility" 加回来：
+#   features = [..., "accessibility"]
+slint = { version = "1.18.1", default-features = false, features = [
+    "std",
+    "backend-default",
+    "renderer-femtovg",
+    "renderer-software",
+    "compat-1-2",
+] }
+# MSA 登录用 ureq 3（`body_mut().read_json()` 是 v3 API）；
+# 安装核心 core/net.rs 仍用 ureq 2 的 API，通过包名重命名共存。
 ureq = { version = "3", features = ["json"] }
+ureq2 = { package = "ureq", version = "2" }
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [build-dependencies]
 slint-build = "1.18.1"
