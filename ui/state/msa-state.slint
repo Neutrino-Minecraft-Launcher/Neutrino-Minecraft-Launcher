@@ -1,0 +1,16 @@
+export enum MsaStatus {
+    idle,
+    starting,
+    waiting,
+    success,
+    error,
+    missing-client-id
+}
+
+export global MsaState {
+    in property <MsaStatus> status: MsaStatus.idle;
+    in property <string> verification-uri: "";
+    in property <string> user-code: "";
+    in property <string> player-name: "";
+    in property <string> error: "";
+}
