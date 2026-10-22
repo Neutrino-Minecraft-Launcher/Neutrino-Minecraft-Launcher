@@ -121,20 +121,6 @@ component GamePanel inherits Rectangle {
                 spacing: 12px;
                 cross-axis-alignment: center;
 
-                Rectangle {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 6px;
-                    background: Palette.accent-background.with-alpha(0.14);
-
-                    Image {
-                        source: @image-url("../images/icons/folder.svg");
-                        width: 18px;
-                        height: 18px;
-                        colorize: Palette.foreground.with-alpha(0.72);
-                    }
-                }
-
                 VerticalLayout {
                     horizontal-stretch: 1;
                     alignment: center;

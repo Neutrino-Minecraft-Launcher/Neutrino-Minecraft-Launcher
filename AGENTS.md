@@ -14,7 +14,7 @@ Early-stage Slint + Rust desktop app. The UI is a navigable shell with a wallpap
 ## How it is wired
 
 - `build.rs` compiles only `ui/app-window.slint`. New `.slint` files must be imported from it or explicitly added to `build.rs`, otherwise they are never compiled.
-- `src/main.rs` wires the UI; `src/java.rs` detects Java installations and `src/instances.rs` scans the Minecraft `versions` folder. `slint::include_modules!()` generates `AppWindow`; `AppState`, `Actions`, `InstanceInfo`, and `JavaInfo` are re-exported from `app-window.slint` so Rust can access them. UI entry chain: `ui/app-window.slint` -> `shell/app-shell.slint` -> `shell/top-bar.slint`; `ui/models/enums.slint` defines `Page`.
+- `src/main.rs` wires the UI; `src/java.rs` detects Java installations, `src/instances.rs` scans the Minecraft `versions` folder, and `src/msa.rs` runs the Microsoft device-code login (requires `NEUTRINO_MSA_CLIENT_ID`). `slint::include_modules!()` generates `AppWindow`; `AppState`, `Actions`, `MsaState`, `InstanceInfo`, and `JavaInfo` are re-exported from `app-window.slint` so Rust can access them. UI entry chain: `ui/app-window.slint` -> `shell/app-shell.slint` -> `shell/top-bar.slint`; `ui/models/enums.slint` defines `Page`.
 - Keep `slint` and `slint-build` on the same version; both are pinned to 1.18.1.
 - `ui/fonts/HarmonyOS_Sans_SC_Regular.ttf` is imported by `app-window.slint` as the default UI font; `ui/images/backgrounds/Jokull.jpg` is the app shell wallpaper.
 - For non-trivial `.slint` work, use the vendored `slint` skill in `.agents/skills/slint/`.

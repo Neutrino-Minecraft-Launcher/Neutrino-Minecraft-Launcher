@@ -1,5 +1,7 @@
 import { Palette } from "std-widgets.slint";
 import { AccountFilter } from "../models/enums.slint";
+import { Actions } from "../state/actions.slint";
+import { MsaState, MsaStatus } from "../state/msa-state.slint";
 
 component AccountMenuItem inherits Rectangle {
     in property <string> label;
@@ -42,6 +44,208 @@ component AccountMenuItem inherits Rectangle {
         mouse-cursor: pointer;
         clicked => {
             root.clicked();
+        }
+    }
+}
+
+component LoginButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> enabled: true;
+
+    callback clicked();
+
+    height: 32px;
+    border-radius: 6px;
+    opacity: root.enabled ? 1 : 0.5;
+    background: touch.has-hover && root.enabled
+        ? Palette.accent-background.with-alpha(0.2)
+        : Palette.accent-background.with-alpha(0.14);
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        alignment: center;
+        cross-axis-alignment: center;
+
+        Text {
+            text: root.label;
+            color: Palette.accent-background;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component MicrosoftLoginPanel inherits Rectangle {
+    background: transparent;
+
+    pure function status-text() -> string {
+        if (MsaState.status == MsaStatus.starting) {
+            return "正在启动登录...";
+        }
+        if (MsaState.status == MsaStatus.waiting) {
+            return "等待浏览器完成授权";
+        }
+        if (MsaState.status == MsaStatus.success) {
+            return "登录成功";
+        }
+        if (MsaState.status == MsaStatus.missing-client-id) {
+            return "需要配置客户端 ID";
+        }
+        if (MsaState.status == MsaStatus.error) {
+            return "登录失败";
+        }
+        return "尚未登录";
+    }
+
+    pure function button-label() -> string {
+        if (MsaState.status == MsaStatus.waiting) {
+            return "打开浏览器";
+        }
+        if (MsaState.status == MsaStatus.success) {
+            return "重新登录";
+        }
+        if (MsaState.status == MsaStatus.starting) {
+            return "登录中...";
+        }
+        return "登录";
+    }
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        Text {
+            text: "微软账号";
+            color: Palette.foreground;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        Text {
+            text: "使用 Microsoft 账号登录 Minecraft";
+            color: Palette.foreground.with-alpha(0.65);
+            font-size: 13px;
+        }
+
+        Rectangle {
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 10px;
+
+                HorizontalLayout {
+                    spacing: 12px;
+                    cross-axis-alignment: center;
+
+                    Image {
+                        source: @image-url("../images/icons/microsoft.svg");
+                        width: 24px;
+                        height: 24px;
+                        colorize: Palette.foreground.with-alpha(0.72);
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 3px;
+
+                        Text {
+                            text: "Microsoft 登录";
+                            color: Palette.foreground;
+                            font-size: 13px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: root.status-text();
+                            color: Palette.foreground.with-alpha(0.65);
+                            font-size: 12px;
+                        }
+                    }
+
+                    LoginButton {
+                        label: root.button-label();
+                        enabled: MsaState.status != MsaStatus.starting;
+                        clicked => {
+                            if MsaState.status == MsaStatus.waiting {
+                                Actions.open-url(MsaState.verification-uri);
+                            } else {
+                                Actions.start-microsoft-login();
+                            }
+                        }
+                    }
+                }
+
+                if MsaState.status == MsaStatus.waiting : VerticalLayout {
+                    spacing: 4px;
+
+                    Text {
+                        text: "在浏览器中输入以下代码：";
+                        color: Palette.foreground.with-alpha(0.65);
+                        font-size: 12px;
+                    }
+
+                    Text {
+                        text: MsaState.user-code;
+                        color: Palette.foreground;
+                        font-size: 26px;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        text: MsaState.verification-uri;
+                        color: Palette.accent-background;
+                        font-size: 11px;
+                        overflow: elide;
+                    }
+                }
+
+                if MsaState.status == MsaStatus.success : Text {
+                    text: "已登录：" + MsaState.player-name;
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+
+                if MsaState.status == MsaStatus.error : Text {
+                    text: MsaState.error;
+                    color: #c0392b;
+                    font-size: 12px;
+                }
+
+                if MsaState.status == MsaStatus.missing-client-id : VerticalLayout {
+                    spacing: 2px;
+
+                    Text {
+                        text: "未配置 Microsoft 客户端 ID";
+                        color: #c0392b;
+                        font-size: 12px;
+                    }
+
+                    Text {
+                        text: "请设置环境变量 NEUTRINO_MSA_CLIENT_ID";
+                        color: Palette.foreground.with-alpha(0.65);
+                        font-size: 11px;
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
         }
     }
 }
@@ -94,16 +298,16 @@ export component AccountView inherits Rectangle {
             horizontal-stretch: 1;
             background: transparent;
 
-            VerticalLayout {
+            if root.current-filter == AccountFilter.microsoft : MicrosoftLoginPanel { }
+
+            if root.current-filter != AccountFilter.microsoft : VerticalLayout {
                 padding: 16px;
                 spacing: 8px;
 
                 Text {
                     text: root.current-filter == AccountFilter.all
                         ? "全部来源"
-                        : root.current-filter == AccountFilter.microsoft
-                            ? "微软账号"
-                            : "离线账号";
+                        : "离线账号";
                     color: Palette.foreground;
                     font-size: 18px;
                     font-weight: 600;

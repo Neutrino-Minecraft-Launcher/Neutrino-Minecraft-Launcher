@@ -28,7 +28,8 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 - [x] GitHub Actions CI（格式检查、Clippy、测试）
 - [x] 行为准则与安全策略
 - [ ] Minecraft 版本安装与启动
-- [ ] Microsoft / 离线账户登录
+- [x] Microsoft 设备码登录流程（需配置客户端 ID）
+- [ ] 离线账户登录
 - [ ] Java 运行时安装与切换
 - [ ] 模组与整合包支持
 - [ ] 下载源与镜像配置
@@ -44,6 +45,26 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 | CI               | GitHub Actions（Windows） |
 | 当前主要构建目标 | Windows MSVC              |
 | 许可证           | GPL-3.0                   |
+
+## Slint 文档
+
+想进一步了解 Slint，可以阅读：
+
+- [Slint 官方文档](https://docs.slint.dev/latest/docs/slint/)
+- [Slint 中文文档](https://slintcn.neutriny.dev/)（非官方，由 [Neutriny](https://github.com/Neutriny) 维护）
+
+## Microsoft 登录
+
+微软账号登录使用 OAuth 2.0 设备码流程。需要先在 Azure Portal 注册支持个人 Microsoft 账号的公共客户端应用，然后设置客户端 ID：
+
+```powershell
+$env:NEUTRINO_MSA_CLIENT_ID = "<你的 Azure 应用客户端 ID>"
+```
+
+- 不需要也不应该把 `client_secret` 放进桌面客户端。
+- 登录 Scope 为 `XboxLive.signin offline_access`。
+- 登录入口：账户 → 微软账号。
+- 启动登录后会自动打开浏览器，并在界面显示设备码。
 
 ## 构建与运行
 
@@ -83,6 +104,7 @@ cargo test --all-targets --all-features
 ├── src/main.rs               # Rust 入口
 ├── src/java.rs               # Java 运行时检测
 ├── src/instances.rs          # versions 目录实例扫描
+├── src/msa.rs                # Microsoft 设备码登录
 ├── ui/app-window.slint       # 主窗口入口
 ├── ui/shell/                 # AppShell / TopBar / NavItem
 ├── ui/views/                 # 启动页 / 设置页

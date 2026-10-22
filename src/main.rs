@@ -3,6 +3,7 @@
 
 mod instances;
 mod java;
+mod msa;
 
 use slint::{ModelRc, VecModel};
 use std::env;
@@ -52,6 +53,68 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    let ui_handle = ui.as_weak();
+    ui.global::<Actions>().on_start_microsoft_login(move || {
+        let weak = ui_handle.clone();
+
+        if let Some(ui) = weak.upgrade() {
+            let status = ui.global::<MsaState>().get_status();
+            if status == MsaStatus::Starting || status == MsaStatus::Waiting {
+                return;
+            }
+
+            let state = ui.global::<MsaState>();
+            state.set_status(MsaStatus::Starting);
+            state.set_error("".into());
+        } else {
+            return;
+        }
+
+        let client_id = match msa::client_id() {
+            Ok(client_id) => client_id,
+            Err(error) => {
+                if let Some(ui) = weak.upgrade() {
+                    let state = ui.global::<MsaState>();
+                    state.set_status(MsaStatus::MissingClientId);
+                    state.set_error(error.into());
+                }
+                return;
+            }
+        };
+
+        std::thread::spawn(move || {
+            let weak = weak.clone();
+            let _ = msa::login(client_id, move |event| {
+                let weak = weak.clone();
+                let _ = slint::invoke_from_event_loop(move || {
+                    let Some(ui) = weak.upgrade() else {
+                        return;
+                    };
+
+                    let state = ui.global::<MsaState>();
+                    match event {
+                        msa::LoginEvent::DeviceCode {
+                            verification_uri,
+                            user_code,
+                        } => {
+                            state.set_status(MsaStatus::Waiting);
+                            state.set_verification_uri(verification_uri.into());
+                            state.set_user_code(user_code.into());
+                        }
+                        msa::LoginEvent::Success { player_name } => {
+                            state.set_status(MsaStatus::Success);
+                            state.set_player_name(player_name.into());
+                        }
+                        msa::LoginEvent::Error(error) => {
+                            state.set_status(MsaStatus::Error);
+                            state.set_error(error.into());
+                        }
+                    }
+                });
+            });
+        });
+    });
+
     ui.run()?;
 
     Ok(())
@@ -97,7 +160,7 @@ fn open_folder(path: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-fn open_url(url: &str) -> std::io::Result<()> {
+pub(crate) fn open_url(url: &str) -> std::io::Result<()> {
     if !(url.starts_with("https://") || url.starts_with("http://")) {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
