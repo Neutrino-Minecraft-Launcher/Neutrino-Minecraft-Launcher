@@ -673,7 +673,7 @@ export component SettingsView inherits Rectangle {
             }
 
             SettingsMenuItem {
-                label: "下载页";
+                label: "下载资源";
                 icon: @image-url("../images/icons/cloud-download.svg");
                 selected: root.current-section == SettingsSection.downloads;
                 clicked => {
@@ -715,7 +715,7 @@ export component SettingsView inherits Rectangle {
             if root.current-section == SettingsSection.appearance : AppearancePanel { }
 
             if root.current-section == SettingsSection.downloads : SettingsPanel {
-                title: "下载页";
+                title: "下载资源";
             }
 
             if root.current-section == SettingsSection.docs : DocsPanel { }

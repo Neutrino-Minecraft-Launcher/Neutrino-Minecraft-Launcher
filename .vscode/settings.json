@@ -1,0 +1,16 @@
+{
+  "files.eol": "\n",
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.tabSize": 2,
+  "[rust]": {
+    "editor.tabSize": 4
+  },
+  "[slint]": {
+    "editor.tabSize": 4
+  }
+}
