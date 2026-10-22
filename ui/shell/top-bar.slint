@@ -1,0 +1,112 @@
+import { Palette } from "std-widgets.slint";
+import { Page } from "../models/enums.slint";
+import { NavItem } from "nav-item.slint";
+
+export component TopBar inherits Rectangle {
+    in property <Page> current-page: Page.launch;
+    accessible-role: AccessibleRole.none;
+
+    callback navigate(Page);
+
+    height: 88px;
+    background: transparent;
+
+    HorizontalLayout {
+        alignment: center;
+        cross-axis-alignment: center;
+        padding-left: 16px;
+        padding-right: 16px;
+
+        Rectangle {
+            horizontal-stretch: 0;
+            height: 64px;
+            border-radius: 8px;
+            background: Palette.background;
+            border-width: 1px;
+            border-color: Palette.border;
+            drop-shadow-color: rgba(0, 0, 0, 0.12);
+            drop-shadow-blur: 18px;
+            drop-shadow-offset-y: 6px;
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+                spacing: 8px;
+                cross-axis-alignment: center;
+
+                Rectangle {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 8px;
+                    background: @linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+
+                    Text {
+                        text: "N";
+                        color: white;
+                        font-size: 16px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Text {
+                    text: "Neutrino";
+                    color: Palette.foreground;
+                    font-size: 16px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    width: 10px;
+                }
+
+                NavItem {
+                    label: "启动";
+                    icon: @image-url("../images/icons/lightning-charge.svg");
+                    selected: root.current-page == Page.launch;
+                    clicked => {
+                        root.navigate(Page.launch);
+                    }
+                }
+
+                NavItem {
+                    label: "实例";
+                    icon: @image-url("../images/icons/instance.svg");
+                    selected: root.current-page == Page.instances;
+                    clicked => {
+                        root.navigate(Page.instances);
+                    }
+                }
+
+                NavItem {
+                    label: "账户";
+                    icon: @image-url("../images/icons/account.svg");
+                    selected: root.current-page == Page.account;
+                    clicked => {
+                        root.navigate(Page.account);
+                    }
+                }
+
+                NavItem {
+                    label: "发现";
+                    icon: @image-url("../images/icons/compass.svg");
+                    selected: root.current-page == Page.discover;
+                    clicked => {
+                        root.navigate(Page.discover);
+                    }
+                }
+
+                NavItem {
+                    label: "设置";
+                    icon: @image-url("../images/icons/setting.svg");
+                    selected: root.current-page == Page.settings;
+                    clicked => {
+                        root.navigate(Page.settings);
+                    }
+                }
+            }
+        }
+    }
+}

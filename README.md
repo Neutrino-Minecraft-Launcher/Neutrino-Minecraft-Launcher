@@ -1,38 +1,109 @@
 # Neutrino Minecraft Launcher
 
-A template for a Rust application that's using [Slint](https://slint.rs/) for the user interface.
+> 使用 Rust + Slint 构建的开源 Minecraft 启动器。
 
-## About
+[![CI](https://img.shields.io/github/actions/workflow/status/NeutrinoMCL/Neutrino-Minecraft-Launcher/ci.yml?branch=main&label=CI&style=for-the-badge)](https://github.com/NeutrinoMCL/Neutrino-Minecraft-Launcher/actions/workflows/ci.yml)
+[![Stars](https://img.shields.io/github/stars/NeutrinoMCL/Neutrino-Minecraft-Launcher?style=for-the-badge)](https://github.com/NeutrinoMCL/Neutrino-Minecraft-Launcher/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/NeutrinoMCL/Neutrino-Minecraft-Launcher/total?label=downloads&style=for-the-badge)](https://github.com/NeutrinoMCL/Neutrino-Minecraft-Launcher/releases)
+[![Rust](https://img.shields.io/badge/Rust-2024-000000?logo=rust&logoColor=white&style=for-the-badge)](https://www.rust-lang.org/)
+[![Slint](https://img.shields.io/badge/Slint-1.18-2379F4?style=for-the-badge)](https://slint.dev/)
+[![License](https://img.shields.io/github/license/NeutrinoMCL/Neutrino-Minecraft-Launcher?label=license&style=for-the-badge)](https://github.com/NeutrinoMCL/Neutrino-Minecraft-Launcher/blob/main/LICENSE)
 
-This template helps you get started developing a Rust application with Slint as toolkit
-for the user interface. It demonstrates the integration between the `.slint` UI markup and
-Rust code, how to react to callbacks, get and set properties, and use basic widgets.
+> [!IMPORTANT]
+> 项目处于早期开发阶段。当前已实现基础导航壳和壁纸界面，Minecraft 启动、账户登录、实例管理等功能尚未实现。
 
-## Usage
+## 简介
 
-1. Install Rust by following its [getting-started guide](https://www.rust-lang.org/learn/get-started).
-   Once this is done, you should have the `rustc` compiler and the `cargo` build system installed in your `PATH`.
-2. Download and extract the [ZIP archive of this repository](https://github.com/slint-ui/slint-rust-template/archive/refs/heads/main.zip).
-3. Rename the extracted directory and change into it:
-   ```
-   mv slint-rust-template-main my-project
-   cd my-project
-   ```
-4. Build with `cargo`:
-   ```
-   cargo build
-   ```
-5. Run the application binary:
-   ```
-   cargo run
-   ```
+Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供一个轻量、易用的桌面 Minecraft 启动器。项目使用 Rust 编写核心逻辑，使用 Slint 构建声明式用户界面。
 
-We recommend using an IDE for development, along with our [LSP-based IDE integration for `.slint` files](https://github.com/slint-ui/slint/blob/master/tools/lsp/README.md). You can also load this project directly in [Visual Studio Code](https://code.visualstudio.com) and install our [Slint extension](https://marketplace.visualstudio.com/items?itemName=Slint.slint).
+当前版本：`0.1.0`（开发中）
 
-## Next Steps
+## 功能状态
 
-We hope that this template helps you get started, and that you enjoy exploring making user interfaces with Slint. To learn more
-about the Slint APIs and the `.slint` markup language, check out our [online documentation](https://slint.dev/docs).
+- [x] Rust + Slint 桌面应用骨架
+- [x] Slint UI 骨架、顶部导航与壁纸背景
+- [x] GitHub Actions CI（格式检查、Clippy、测试）
+- [x] 行为准则与安全策略
+- [ ] Minecraft 版本安装与启动
+- [ ] Microsoft / 离线账户登录
+- [ ] Java 运行时检测与管理
+- [ ] 模组与整合包支持
+- [ ] 下载源与镜像配置
+- [ ] 自动更新与发布流程
 
-Don't forget to edit this readme to replace it by yours, and edit the `name =` field in `Cargo.toml` to match the name of your
-project.
+## 技术栈
+
+| 类别             | 技术                      |
+| ---------------- | ------------------------- |
+| 语言             | Rust 2024                 |
+| GUI              | Slint 1.18                |
+| 构建             | Cargo                     |
+| CI               | GitHub Actions（Windows） |
+| 当前主要构建目标 | Windows MSVC              |
+| 许可证           | GPL-3.0                   |
+
+## 构建与运行
+
+### 环境要求
+
+- Rust stable（支持 edition 2024）
+- Windows：MSVC 工具链与 Visual Studio Build Tools（C++ 桌面开发）
+- 其他平台尚未验证
+
+### 常用命令
+
+```sh
+# 运行应用
+cargo run
+
+# 发布构建
+cargo build --release
+
+# 仅预览 Slint UI
+slint-viewer ui/app-window.slint
+```
+
+### 本地检查
+
+提交 PR 前请运行与 CI 相同的检查：
+
+```sh
+cargo fmt --all -- --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --all-targets --all-features
+```
+
+## 项目结构
+
+```text
+.
+├── src/main.rs               # Rust 入口
+├── ui/app-window.slint       # 主窗口入口
+├── ui/shell/                 # AppShell / TopBar / NavItem
+├── ui/models/                # Page 枚举等共享类型
+├── ui/fonts/                 # 字体资源
+├── ui/images/                # 图标与壁纸
+├── build.rs                  # 编译 Slint UI
+├── .github/workflows/ci.yml  # CI 工作流
+├── AGENTS.md                 # AI 协作说明
+├── SECURITY.md               # 安全政策
+└── CODE_OF_CONDUCT.md        # 行为准则
+```
+
+## 下载
+
+目前尚未发布可下载版本。首个 Release 发布后，顶部下载量徽章会自动更新。
+
+## 参与贡献
+
+欢迎提交 Issue 和 Pull Request。开始前请阅读 [行为准则](CODE_OF_CONDUCT.md) 和 [安全政策](SECURITY.md)。
+
+- `main` 分支受保护，请通过 PR 合并。
+- PR 需要通过 CI，并获得至少 1 个 approval。
+- 安全问题请勿公开提交 Issue，请按 `SECURITY.md` 中的方式报告。
+
+## 许可证
+
+本项目采用 [GPL-3.0](LICENSE) 许可证。
+
+> NOT AN OFFICIAL MINECRAFT SERVICE. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.

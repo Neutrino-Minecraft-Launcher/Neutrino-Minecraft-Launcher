@@ -1,21 +1,32 @@
-# Security Policy
+# 安全策略
 
-## Supported Versions
+## 支持的版本
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Neutrino MCL 当前支持以下版本。
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 版本 | 是否支持           |
+| ---- | ------------------ |
+| 1.x  | :x:                |
+| 0.x  | :white_check_mark: |
 
-## Reporting a Vulnerability
+## 报告安全漏洞
 
-Use this section to tell people how to report a vulnerability.
+如果您认为在我们的启动器中发现了安全漏洞，请按照以下步骤向我们报告：
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+1. **请勿**为安全漏洞创建 GitHub 议题
+2. 发送邮件至 [neutriny@yeah.net](mailto:neutriny@yeah.net)
+   - 邮件主题请以 `[Neutrino MCL Security]` 开头
+   - 请尽可能提供有关该漏洞的详细信息
+
+## 响应时间
+
+我们会在中国的工作日定期查看安全邮箱。通常情况下，您可以在 2 至 3 个工作日内收到初步回复。
+
+## 后续流程
+
+- 我们会确认收到您的漏洞报告
+- 我们会展开调查，并向您同步调查进展和结果
+- 我们会及时告知您修复工作的进展
+- 问题解决后，我们可能会邀请您对解决方案提供反馈
+
+感谢您帮助我们维护启动器的安全！
