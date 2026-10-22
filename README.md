@@ -58,10 +58,34 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 微软账号登录使用 OAuth 2.0 设备码流程。需要先在 Azure Portal 注册支持个人 Microsoft 账号的公共客户端应用，然后设置客户端 ID：
 
 ```powershell
+Copy-Item .env.example .env
+```
+
+编辑 `.env`：
+
+```text
+NEUTRINO_MSA_CLIENT_ID=<你的 Azure 应用客户端 ID>
+```
+
+也可以只在当前终端临时设置：
+
+```powershell
 $env:NEUTRINO_MSA_CLIENT_ID = "<你的 Azure 应用客户端 ID>"
 ```
 
+- `.env` 已被 `.gitignore` 忽略；`.env.example` 可以提交。
+- client ID 是公开标识，不是密钥，可以共享给协作者。
 - 不需要也不应该把 `client_secret` 放进桌面客户端。
+
+GitHub Actions 构建时可以从仓库变量读取：
+
+```text
+Settings → Secrets and variables → Actions → Variables
+Name: NEUTRINO_MSA_CLIENT_ID
+Value: <你的 Azure 应用客户端 ID>
+```
+
+工作流会把该变量传入编译环境；发布构建会把它作为编译时回退值写入程序，最终用户不需要再配置环境变量。本地开发仍优先使用 `.env` 或当前终端的环境变量。
 - 登录 Scope 为 `XboxLive.signin offline_access`。
 - 登录入口：账户 → 微软账号。
 - 启动登录后会自动打开浏览器，并在界面显示设备码。

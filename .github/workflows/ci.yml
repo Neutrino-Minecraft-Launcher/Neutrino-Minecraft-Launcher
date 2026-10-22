@@ -17,6 +17,8 @@ jobs:
     name: fmt / clippy / test
     runs-on: windows-latest
     timeout-minutes: 30
+    env:
+      NEUTRINO_MSA_CLIENT_ID: ${{ vars.NEUTRINO_MSA_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable

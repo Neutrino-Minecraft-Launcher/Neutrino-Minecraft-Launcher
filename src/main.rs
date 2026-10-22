@@ -14,6 +14,8 @@ use std::process::Command;
 slint::include_modules!();
 
 fn main() -> Result<(), Box<dyn Error>> {
+    dotenvy::dotenv().ok();
+
     let ui = AppWindow::new()?;
 
     let game_dir = official_game_dir();

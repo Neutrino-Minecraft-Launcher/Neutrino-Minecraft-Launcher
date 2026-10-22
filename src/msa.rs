@@ -23,7 +23,17 @@ pub enum LoginEvent {
 }
 
 pub fn client_id() -> Result<String, String> {
-    std::env::var(CLIENT_ID_ENV).map_err(|_| format!("未设置 {CLIENT_ID_ENV} 环境变量"))
+    if let Some(client_id) = std::env::var(CLIENT_ID_ENV)
+        .ok()
+        .filter(|client_id| !client_id.trim().is_empty())
+    {
+        return Ok(client_id);
+    }
+
+    option_env!("NEUTRINO_MSA_CLIENT_ID")
+        .filter(|client_id| !client_id.trim().is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| format!("未设置 {CLIENT_ID_ENV} 环境变量"))
 }
 
 pub fn login<F>(client_id: String, on_event: F) -> Result<(), String>

@@ -6,6 +6,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+dotenvy = "0.15"
 minecraft-msa-auth = { version = "0.5.0", features = ["is_sync", "ureq"] }
 oauth2 = { version = "5.0.0", features = ["reqwest-blocking"] }
 rusqlite = { version = "0.40.2", features = ["bundled"] }

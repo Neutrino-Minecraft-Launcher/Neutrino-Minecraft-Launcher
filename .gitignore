@@ -5,6 +5,9 @@
 # Delta worktrees/clones (local tool state)
 /.delta/
 
+# Local environment variables
+.env
+
 # JetBrains IDEs
 # Keep shared project settings; ignore only machine/user-specific files.
 .idea/workspace.xml
