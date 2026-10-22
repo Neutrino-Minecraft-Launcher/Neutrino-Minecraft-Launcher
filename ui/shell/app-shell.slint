@@ -4,46 +4,8 @@ import { TopBar } from "top-bar.slint";
 import { LaunchView } from "../views/launch-view.slint";
 import { InstancesView } from "../views/instances-view.slint";
 import { AccountView } from "../views/account-view.slint";
+import { DiscoverView } from "../views/discover-view.slint";
 import { SettingsView } from "../views/settings-view.slint";
-
-component PagePlaceholder inherits Rectangle {
-    in property <string> title;
-    in property <string> subtitle;
-
-    background: transparent;
-
-    VerticalLayout {
-        alignment: center;
-        spacing: 10px;
-        padding: 32px;
-
-        Text {
-            text: root.title;
-            color: Palette.foreground;
-            font-size: 30px;
-            font-weight: 600;
-            horizontal-alignment: center;
-        }
-
-        Text {
-            text: root.subtitle;
-            color: Palette.foreground.with-alpha(0.65);
-            font-size: 15px;
-            horizontal-alignment: center;
-        }
-
-        HorizontalLayout {
-            alignment: center;
-
-            Rectangle {
-                width: 64px;
-                height: 3px;
-                border-radius: 6px;
-                background: Palette.accent-background;
-            }
-        }
-    }
-}
 
 export component AppShell inherits Rectangle {
     in-out property <Page> current-page: Page.launch;
@@ -119,14 +81,12 @@ export component AppShell inherits Rectangle {
                         visible: root.current-page == Page.account;
                     }
 
-                    PagePlaceholder {
+                    DiscoverView {
                         x: 0;
                         y: 0;
                         width: 100%;
                         height: 100%;
                         visible: root.current-page == Page.discover;
-                        title: "发现";
-                        subtitle: "浏览模组、资源包和整合包";
                     }
 
                     SettingsView {

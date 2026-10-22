@@ -1,5 +1,7 @@
 import { InstanceInfo } from "../models/instance.slint";
 import { JavaInfo } from "../models/java.slint";
+import { ProjectInfo } from "../models/project.slint";
+import { VersionInfo } from "../models/version.slint";
 
 export global AppState {
     in property <string> game-dir: "";
@@ -12,4 +14,38 @@ export global AppState {
         vendor: "",
         path: ""
     };
+
+    // ---- 发现页 ----
+
+    /// 当前类别：vanilla / mod / shader / resourcepack / modpack
+    in property <string> category: "vanilla";
+
+    /// 原版版本列表（当前筛选条件下）
+    in property <[VersionInfo]> versions: [];
+    in property <bool> versions-loading: false;
+    in property <string> versions-error: "";
+    in property <string> versions-summary: "";
+    in property <string> latest-release: "";
+    in property <string> latest-snapshot: "";
+
+    /// 模组 / 光影 / 材质 / 整合包列表
+    in property <[ProjectInfo]> projects: [];
+    in property <bool> projects-loading: false;
+    in property <string> projects-error: "";
+    in property <string> projects-summary: "";
+
+    /// 是否有安装任务正在进行（同一时间只允许一个）
+    in property <bool> installing: false;
+    in property <string> installing-version: "";
+    in property <float> install-progress: 0.0;
+    in property <string> install-progress-text: "";
+    in property <string> install-stage: "";
+    /// 最近一次安装的提示信息（空字符串表示不显示）
+    in property <string> install-message: "";
+    in property <bool> install-ok: false;
+
+    /// 正在下载的项目 id
+    in property <string> downloading-project: "";
+    in property <string> download-message: "";
+    in property <bool> download-ok: false;
 }

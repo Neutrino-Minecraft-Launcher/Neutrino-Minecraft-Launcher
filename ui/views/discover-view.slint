@@ -1,0 +1,784 @@
+import { Palette, ListView } from "std-widgets.slint";
+import { VersionFilter } from "../models/enums.slint";
+import { AppState } from "../state/app-state.slint";
+import { Actions } from "../state/actions.slint";
+
+// 侧栏类别项，与实例页 / 账户页 / 设置页保持同一套视觉
+component CategoryItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.72);
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// 原版版本筛选小胶囊（只在“原版游戏”类别出现）
+component FilterPill inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 28px;
+    min-width: 64px;
+    horizontal-stretch: 0;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.16)
+        : pill-touch.has-hover
+            ? Palette.foreground.with-alpha(0.06)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+        cross-axis-alignment: center;
+
+        Text {
+            text: root.label;
+            color: root.selected ? Palette.accent-background : Palette.foreground.with-alpha(0.65);
+            font-size: 12px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    pill-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+// 原版版本行
+component VersionRow inherits Rectangle {
+    in property <string> version-id;
+    in property <string> kind-label;
+    in property <string> release-date;
+    in property <bool> installed;
+    in property <bool> installing;
+    /// 全局是否有安装任务（用于禁用其它按钮）
+    in property <bool> busy;
+
+    callback install();
+
+    height: 62px;
+    background: transparent;
+
+    // 注意：这个 TouchArea 必须声明在 card 之前。
+    // Slint 里后声明的元素在上层，谁在上层谁先拿到鼠标事件；
+    // 若排在 card 之后，就会盖住“安装”按钮，点了没反应。
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+
+    card := Rectangle {
+        x: 0;
+        y: 3px;
+        width: 100%;
+        height: 56px;
+        border-radius: 6px;
+        background: touch.has-hover
+            ? Palette.foreground.with-alpha(0.10)
+            : Palette.foreground.with-alpha(0.05);
+        border-width: 1px;
+        border-color: Palette.foreground.with-alpha(0.12);
+
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 8px;
+            spacing: 10px;
+            cross-axis-alignment: center;
+
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: 6px;
+                background: Palette.accent-background.with-alpha(0.14);
+
+                Image {
+                    source: @image-url("../images/icons/instance.svg");
+                    width: 18px;
+                    height: 18px;
+                    colorize: Palette.foreground.with-alpha(0.72);
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 2px;
+
+                Text {
+                    text: root.version-id;
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    font-weight: 600;
+                    overflow: elide;
+                }
+
+                Text {
+                    text: root.release-date;
+                    color: Palette.foreground.with-alpha(0.5);
+                    font-size: 11px;
+                }
+            }
+
+            // 类型徽章：沿用设置页 JavaCard 里 LTS 徽章的配色
+            Rectangle {
+                height: 20px;
+                horizontal-stretch: 0;
+                border-radius: 6px;
+                background: #dbeafe;
+
+                HorizontalLayout {
+                    padding-left: 6px;
+                    padding-right: 6px;
+                    alignment: center;
+                    cross-axis-alignment: center;
+
+                    Text {
+                        text: root.kind-label;
+                        color: #1e40af;
+                        font-size: 11px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            if root.installed : Text {
+                text: "已安装";
+                color: Palette.accent-background;
+                font-size: 12px;
+                font-weight: 600;
+                vertical-alignment: center;
+            }
+
+            if !root.installed : Rectangle {
+                height: 30px;
+                min-width: 78px;
+                horizontal-stretch: 0;
+                border-radius: 6px;
+                opacity: root.busy ? 0.4 : 1.0;
+                border-width: 1px;
+                border-color: Palette.accent-background.with-alpha(0.55);
+                background: install-touch.has-hover && !root.busy
+                    ? Palette.accent-background.with-alpha(0.30)
+                    : Palette.accent-background.with-alpha(0.18);
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    alignment: center;
+                    cross-axis-alignment: center;
+
+                    Text {
+                        text: root.installing ? "安装中…" : "安装";
+                        color: Palette.accent-background;
+                        font-size: 12px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                }
+
+                install-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (!root.busy) {
+                            root.install();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 模组 / 光影 / 材质 / 整合包行
+component ProjectRow inherits Rectangle {
+    in property <string> title;
+    in property <string> initial;
+    in property <string> subtitle;
+    in property <string> description;
+    in property <string> tag;
+    in property <string> action-label;
+    in property <bool> downloadable;
+    in property <bool> busy;
+    in property <bool> active;
+
+    callback action();
+
+    height: 78px;
+    background: transparent;
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+    }
+
+    card := Rectangle {
+        x: 0;
+        y: 3px;
+        width: 100%;
+        height: 72px;
+        border-radius: 6px;
+        background: touch.has-hover
+            ? Palette.foreground.with-alpha(0.10)
+            : Palette.foreground.with-alpha(0.05);
+        border-width: 1px;
+        border-color: Palette.foreground.with-alpha(0.12);
+
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 8px;
+            spacing: 10px;
+            cross-axis-alignment: center;
+
+            // 首字母头像：不额外拉取图标，保证弱网/离线也能看
+            Rectangle {
+                width: 36px;
+                height: 36px;
+                border-radius: 6px;
+                background: Palette.accent-background.with-alpha(0.16);
+
+                Text {
+                    text: root.initial;
+                    color: Palette.accent-background;
+                    font-size: 16px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 3px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    cross-axis-alignment: center;
+
+                    Text {
+                        text: root.title;
+                        color: Palette.foreground;
+                        font-size: 13px;
+                        font-weight: 600;
+                        overflow: elide;
+                    }
+
+                    if root.tag != "" : Text {
+                        text: root.tag;
+                        color: Palette.foreground.with-alpha(0.45);
+                        font-size: 11px;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Text {
+                    text: root.description;
+                    color: Palette.foreground.with-alpha(0.62);
+                    font-size: 11px;
+                    overflow: elide;
+                }
+
+                Text {
+                    text: root.subtitle;
+                    color: Palette.foreground.with-alpha(0.42);
+                    font-size: 11px;
+                    overflow: elide;
+                }
+            }
+
+            Rectangle {
+                height: 30px;
+                min-width: 78px;
+                horizontal-stretch: 0;
+                border-radius: 6px;
+                opacity: !root.downloadable || (root.busy && !root.active) ? 0.4 : 1.0;
+                border-width: 1px;
+                border-color: Palette.accent-background.with-alpha(0.55);
+                background: action-touch.has-hover && root.downloadable && !root.busy
+                    ? Palette.accent-background.with-alpha(0.30)
+                    : Palette.accent-background.with-alpha(0.18);
+
+                HorizontalLayout {
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    alignment: center;
+                    cross-axis-alignment: center;
+
+                    Text {
+                        text: root.active ? "下载中…" : root.action-label;
+                        color: Palette.accent-background;
+                        font-size: 12px;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                    }
+                }
+
+                action-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        if (root.downloadable && !root.busy) {
+                            root.action();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 安装进度条
+component InstallStrip inherits Rectangle {
+    height: 64px;
+    border-radius: 6px;
+    background: Palette.accent-background.with-alpha(0.10);
+    border-width: 1px;
+    border-color: Palette.accent-background.with-alpha(0.35);
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 7px;
+
+            Text {
+                text: "正在安装 " + AppState.installing-version + "  ·  " + (AppState.install-stage == ""
+                    ? "准备中"
+                    : AppState.install-stage);
+                color: Palette.foreground;
+                font-size: 13px;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            Rectangle {
+                height: 6px;
+                border-radius: 3px;
+                background: Palette.foreground.with-alpha(0.12);
+
+                Rectangle {
+                    x: 0;
+                    y: 0;
+                    width: parent.width * AppState.install-progress;
+                    height: 100%;
+                    border-radius: 3px;
+                    background: Palette.accent-background;
+                }
+            }
+        }
+
+        Text {
+            text: AppState.install-progress-text;
+            color: Palette.accent-background;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+            horizontal-alignment: right;
+            min-width: 40px;
+        }
+    }
+}
+
+component MessageStrip inherits Rectangle {
+    in property <string> message;
+    in property <bool> ok;
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.ok ? Palette.accent-background.with-alpha(0.10) : #fee2e2;
+    border-width: 1px;
+    border-color: root.ok ? Palette.accent-background.with-alpha(0.30) : #fecaca;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        cross-axis-alignment: center;
+
+        Text {
+            text: root.message;
+            color: root.ok ? Palette.foreground : #991b1b;
+            font-size: 12px;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+}
+
+export component DiscoverView inherits Rectangle {
+    in-out property <VersionFilter> filter: VersionFilter.release;
+
+    background: transparent;
+
+    function is-vanilla() -> bool {
+        return AppState.category == "vanilla";
+    }
+
+    function category-title() -> string {
+        if (AppState.category == "mod") {
+            return "模组";
+        }
+        if (AppState.category == "shader") {
+            return "光影包";
+        }
+        if (AppState.category == "resourcepack") {
+            return "材质包";
+        }
+        if (AppState.category == "modpack") {
+            return "整合包";
+        }
+        return "原版游戏";
+    }
+
+    function category-subtitle() -> string {
+        if (AppState.category == "mod") {
+            return "来自 Modrinth 的热门模组，下载到 mods/ 目录（需先装好 Fabric / Forge 等加载器）";
+        }
+        if (AppState.category == "shader") {
+            return "光影包会下载到 shaderpacks/ 目录，游戏内需配合 Iris 或 OptiFine 使用";
+        }
+        if (AppState.category == "resourcepack") {
+            return "材质包会下载到 resourcepacks/ 目录";
+        }
+        if (AppState.category == "modpack") {
+            return "整合包列表来自 Modrinth，一键安装仍在开发中";
+        }
+        return AppState.latest-release == ""
+            ? "从 Mojang 官方源下载并安装 Minecraft 原版"
+            : "最新正式版 " + AppState.latest-release + "  ·  最新快照 " + AppState.latest-snapshot;
+    }
+
+    function apply-filter(value: VersionFilter, key: string) {
+        root.filter = value;
+        Actions.filter-versions(key);
+    }
+
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 16px;
+
+        // 左侧类别
+        VerticalLayout {
+            width: 200px;
+            horizontal-stretch: 0;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 4px;
+
+            CategoryItem {
+                label: "原版游戏";
+                icon: @image-url("../images/icons/game.svg");
+                selected: root.is-vanilla();
+                clicked => {
+                    Actions.open-category("vanilla");
+                }
+            }
+
+            CategoryItem {
+                label: "模组";
+                icon: @image-url("../images/icons/puzzle.svg");
+                selected: AppState.category == "mod";
+                clicked => {
+                    Actions.open-category("mod");
+                }
+            }
+
+            CategoryItem {
+                label: "光影包";
+                icon: @image-url("../images/icons/shader.svg");
+                selected: AppState.category == "shader";
+                clicked => {
+                    Actions.open-category("shader");
+                }
+            }
+
+            CategoryItem {
+                label: "材质包";
+                icon: @image-url("../images/icons/images.svg");
+                selected: AppState.category == "resourcepack";
+                clicked => {
+                    Actions.open-category("resourcepack");
+                }
+            }
+
+            CategoryItem {
+                label: "整合包";
+                icon: @image-url("../images/icons/boxes.svg");
+                selected: AppState.category == "modpack";
+                clicked => {
+                    Actions.open-category("modpack");
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            if root.is-vanilla() && AppState.versions-summary != "" : Text {
+                text: AppState.versions-summary;
+                color: Palette.foreground.with-alpha(0.45);
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            if !root.is-vanilla() && AppState.projects-summary != "" : Text {
+                text: AppState.projects-summary;
+                color: Palette.foreground.with-alpha(0.45);
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+        }
+
+        // 右侧内容
+        VerticalLayout {
+            spacing: 10px;
+            padding: 16px;
+
+            HorizontalLayout {
+                spacing: 10px;
+                cross-axis-alignment: center;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    spacing: 2px;
+
+                    Text {
+                        text: root.category-title();
+                        color: Palette.foreground;
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        text: root.category-subtitle();
+                        color: Palette.foreground.with-alpha(0.65);
+                        font-size: 13px;
+                        overflow: elide;
+                    }
+                }
+
+                // 原版：版本类型筛选
+                if root.is-vanilla() : HorizontalLayout {
+                    spacing: 4px;
+
+                    FilterPill {
+                        label: "正式版";
+                        selected: root.filter == VersionFilter.release;
+                        clicked => {
+                            root.apply-filter(VersionFilter.release, "release");
+                        }
+                    }
+
+                    FilterPill {
+                        label: "快照版";
+                        selected: root.filter == VersionFilter.snapshot;
+                        clicked => {
+                            root.apply-filter(VersionFilter.snapshot, "snapshot");
+                        }
+                    }
+
+                    FilterPill {
+                        label: "全部";
+                        selected: root.filter == VersionFilter.all;
+                        clicked => {
+                            root.apply-filter(VersionFilter.all, "all");
+                        }
+                    }
+                }
+
+                // 刷新按钮
+                Rectangle {
+                    height: 32px;
+                    min-width: 84px;
+                    horizontal-stretch: 0;
+                    border-radius: 6px;
+                    opacity: AppState.versions-loading || AppState.projects-loading ? 0.5 : 1.0;
+                    background: refresh-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
+
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 12px;
+                        spacing: 6px;
+                        alignment: center;
+                        cross-axis-alignment: center;
+
+                        Image {
+                            source: @image-url("../images/icons/arrow-repeat.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: Palette.foreground.with-alpha(0.72);
+                        }
+
+                        Text {
+                            text: AppState.versions-loading || AppState.projects-loading ? "获取中…" : "刷新";
+                            color: Palette.foreground;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    refresh-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            if (root.is-vanilla()) {
+                                if (!AppState.versions-loading) {
+                                    Actions.refresh-versions();
+                                }
+                            } else {
+                                if (!AppState.projects-loading) {
+                                    Actions.open-category(AppState.category);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if root.is-vanilla() && AppState.installing : InstallStrip { }
+
+            if root.is-vanilla() && AppState.install-message != "" : MessageStrip {
+                message: AppState.install-message;
+                ok: AppState.install-ok;
+            }
+
+            if !root.is-vanilla() && AppState.download-message != "" : MessageStrip {
+                message: AppState.download-message;
+                ok: AppState.download-ok;
+            }
+
+            if AppState.versions-error != "" && root.is-vanilla() : MessageStrip {
+                message: AppState.versions-error;
+                ok: false;
+            }
+
+            if AppState.projects-error != "" && !root.is-vanilla() : MessageStrip {
+                message: AppState.projects-error;
+                ok: false;
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                border-radius: 6px;
+                background: Palette.background.with-alpha(0.5);
+                border-width: 1px;
+                border-color: Palette.foreground.with-alpha(0.08);
+                clip: true;
+
+                if root.is-vanilla() : ListView {
+                    x: 0;
+                    y: 0;
+                    width: 100%;
+                    height: 100%;
+
+                    for version in AppState.versions : VersionRow {
+                        version-id: version.version-id;
+                        kind-label: version.kind-label;
+                        release-date: version.release-date;
+                        installed: version.installed;
+                        installing: AppState.installing
+                            && AppState.installing-version == version.version-id;
+                        busy: AppState.installing;
+                        install => {
+                            Actions.install-version(version.version-id);
+                        }
+                    }
+                }
+
+                if !root.is-vanilla() : ListView {
+                    x: 0;
+                    y: 0;
+                    width: 100%;
+                    height: 100%;
+
+                    for project in AppState.projects : ProjectRow {
+                        title: project.title;
+                        initial: project.initial;
+                        subtitle: project.subtitle;
+                        description: project.description;
+                        tag: project.tag;
+                        action-label: project.action-label;
+                        downloadable: project.downloadable;
+                        busy: AppState.downloading-project != "";
+                        active: AppState.downloading-project == project.project-id;
+                        action => {
+                            Actions.download-project(project.project-id);
+                        }
+                    }
+                }
+
+                // 空状态 / 加载提示
+                if root.is-vanilla() && AppState.versions.length == 0 : Text {
+                    x: 0;
+                    y: 0;
+                    width: 100%;
+                    height: 100%;
+                    text: AppState.versions-loading ? "正在获取版本列表…" : "没有可显示的版本，点右上角刷新试试";
+                    color: Palette.foreground.with-alpha(0.45);
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                if !root.is-vanilla() && AppState.projects.length == 0 : Text {
+                    x: 0;
+                    y: 0;
+                    width: 100%;
+                    height: 100%;
+                    text: AppState.projects-loading ? "正在从 Modrinth 获取列表…" : "没有获取到项目，点右上角刷新试试";
+                    color: Palette.foreground.with-alpha(0.45);
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
