@@ -2,6 +2,9 @@ import { Palette } from "std-widgets.slint";
 import { Page } from "../models/enums.slint";
 import { TopBar } from "top-bar.slint";
 import { LaunchView } from "../views/launch-view.slint";
+import { InstancesView } from "../views/instances-view.slint";
+import { AccountView } from "../views/account-view.slint";
+import { SettingsView } from "../views/settings-view.slint";
 
 component PagePlaceholder inherits Rectangle {
     in property <string> title;
@@ -35,7 +38,7 @@ component PagePlaceholder inherits Rectangle {
             Rectangle {
                 width: 64px;
                 height: 3px;
-                border-radius: 8px;
+                border-radius: 6px;
                 background: Palette.accent-background;
             }
         }
@@ -77,9 +80,16 @@ export component AppShell inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
 
-            if root.current-page == Page.launch : LaunchView { }
+            LaunchView {
+                x: 0;
+                y: 0;
+                width: 100%;
+                height: 100%;
+                visible: root.current-page == Page.launch;
+            }
 
-            if root.current-page != Page.launch : HorizontalLayout {
+            HorizontalLayout {
+                visible: root.current-page != Page.launch;
                 padding-left: 16px;
                 padding-right: 16px;
                 padding-bottom: 16px;
@@ -87,30 +97,44 @@ export component AppShell inherits Rectangle {
                 Rectangle {
                     horizontal-stretch: 1;
                     vertical-stretch: 1;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     background: Palette.background.with-alpha(0.78);
                     border-width: 1px;
-                    border-color: Palette.border;
+                    border-color: Palette.foreground.with-alpha(0.08);
                     clip: true;
 
-                    if root.current-page == Page.instances : PagePlaceholder {
-                        title: "实例";
-                        subtitle: "管理你的 Minecraft 实例";
+                    InstancesView {
+                        x: 0;
+                        y: 0;
+                        width: 100%;
+                        height: 100%;
+                        visible: root.current-page == Page.instances;
                     }
 
-                    if root.current-page == Page.account : PagePlaceholder {
-                        title: "账户";
-                        subtitle: "登录并管理你的账户";
+                    AccountView {
+                        x: 0;
+                        y: 0;
+                        width: 100%;
+                        height: 100%;
+                        visible: root.current-page == Page.account;
                     }
 
-                    if root.current-page == Page.discover : PagePlaceholder {
+                    PagePlaceholder {
+                        x: 0;
+                        y: 0;
+                        width: 100%;
+                        height: 100%;
+                        visible: root.current-page == Page.discover;
                         title: "发现";
                         subtitle: "浏览模组、资源包和整合包";
                     }
 
-                    if root.current-page == Page.settings : PagePlaceholder {
-                        title: "设置";
-                        subtitle: "调整启动器行为";
+                    SettingsView {
+                        x: 0;
+                        y: 0;
+                        width: 100%;
+                        height: 100%;
+                        visible: root.current-page == Page.settings;
                     }
                 }
             }

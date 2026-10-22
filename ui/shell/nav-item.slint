@@ -12,7 +12,7 @@ export component NavItem inherits Rectangle {
 
     min-width: 92px;
     height: 36px;
-    border-radius: 8px;
+    border-radius: 6px;
     horizontal-stretch: 0;
     background: root.selected
         ? Palette.accent-background.with-alpha(0.14)
@@ -29,23 +29,19 @@ export component NavItem inherits Rectangle {
 
         Image {
             source: root.icon;
-            width: 18px;
-            height: 18px;
-            colorize: root.selected
-                ? Palette.accent-background
-                : root.enabled
-                    ? Palette.foreground
-                    : Palette.foreground.with-alpha(0.4);
+            width: 16px;
+            height: 16px;
+            colorize: root.enabled
+                ? Palette.foreground
+                : Palette.foreground.with-alpha(0.4);
         }
 
         Text {
             text: root.label;
-            color: root.selected
-                ? Palette.accent-background
-                : root.enabled
-                    ? Palette.foreground
-                    : Palette.foreground.with-alpha(0.4);
-            font-size: 14px;
+            color: root.enabled
+                ? Palette.foreground
+                : Palette.foreground.with-alpha(0.4);
+            font-size: 13px;
             font-weight: root.selected ? 600 : 400;
             vertical-alignment: center;
         }

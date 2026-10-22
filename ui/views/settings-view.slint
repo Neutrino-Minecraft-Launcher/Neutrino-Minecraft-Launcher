@@ -1,0 +1,728 @@
+import { Palette } from "std-widgets.slint";
+import { SettingsSection, ThemePreference } from "../models/enums.slint";
+import { JavaInfo } from "../models/java.slint";
+import { AppState } from "../state/app-state.slint";
+import { Actions } from "../state/actions.slint";
+import { Theme } from "../theme/theme.slint";
+
+component SettingsMenuItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.72);
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component SettingsPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+
+    background: transparent;
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 8px;
+
+        Text {
+            text: root.title;
+            color: Palette.foreground;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        Text {
+            text: root.subtitle;
+            color: Palette.foreground.with-alpha(0.65);
+            font-size: 14px;
+        }
+
+        Rectangle {
+            height: 1px;
+            background: Palette.foreground.with-alpha(0.08);
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+
+        Text {
+            text: "设置项将在这里展示";
+            color: Palette.foreground.with-alpha(0.45);
+            font-size: 14px;
+            horizontal-alignment: center;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+component GamePanel inherits Rectangle {
+    background: transparent;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        Text {
+            text: "游戏目录";
+            color: Palette.foreground;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            height: 64px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            HorizontalLayout {
+                padding: 12px;
+                spacing: 12px;
+                cross-axis-alignment: center;
+
+                Rectangle {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    background: Palette.accent-background.with-alpha(0.14);
+
+                    Image {
+                        source: @image-url("../images/icons/folder.svg");
+                        width: 18px;
+                        height: 18px;
+                        colorize: Palette.foreground.with-alpha(0.72);
+                    }
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    spacing: 2px;
+
+                    Text {
+                        text: "官方启动文件夹";
+                        color: Palette.foreground;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        text: AppState.game-dir;
+                        color: Palette.foreground.with-alpha(0.55);
+                        font-size: 11px;
+                        overflow: elide;
+                    }
+                }
+
+                Rectangle {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 6px;
+                    background: open-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
+
+                    Image {
+                        source: @image-url("../images/icons/folder2-open.svg");
+                        width: 18px;
+                        height: 18px;
+                        colorize: Palette.foreground.with-alpha(0.72);
+                    }
+
+                    open-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            Actions.open-folder(AppState.game-dir);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+component JavaCard inherits Rectangle {
+    in property <JavaInfo> info;
+
+    height: 92px;
+    border-radius: 6px;
+    background: Palette.background.with-alpha(0.5);
+    border-width: 1px;
+    border-color: Palette.foreground.with-alpha(0.08);
+
+    HorizontalLayout {
+        padding: 14px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 3px;
+
+            HorizontalLayout {
+                spacing: 6px;
+                cross-axis-alignment: center;
+
+                Text {
+                    text: "JDK " + root.info.version;
+                    color: Palette.foreground;
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                Rectangle {
+                    height: 20px;
+                    horizontal-stretch: 0;
+                    border-radius: 6px;
+                    background: #dbeafe;
+
+                    HorizontalLayout {
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        alignment: center;
+                        cross-axis-alignment: center;
+
+                        Text {
+                            text: root.info.lts
+                                ? "Java \{root.info.major} (LTS)"
+                                : "Java \{root.info.major}";
+                            color: #1e40af;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                Text {
+                    text: root.info.vendor;
+                    color: Palette.accent-background;
+                    font-size: 12px;
+                    horizontal-stretch: 1;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+            }
+
+            Text {
+                text: root.info.path;
+                color: Palette.foreground.with-alpha(0.5);
+                font-size: 11px;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            background: folder-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
+
+            Image {
+                source: @image-url("../images/icons/folder2-open.svg");
+                width: 18px;
+                height: 18px;
+                colorize: Palette.foreground.with-alpha(0.72);
+            }
+
+            folder-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    Actions.open-folder(root.info.path);
+                }
+            }
+        }
+    }
+}
+
+component JavaPanel inherits Rectangle {
+    background: transparent;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 10px;
+
+        if AppState.java-info.path != "" : JavaCard {
+            info: AppState.java-info;
+        }
+
+        if AppState.java-info.path == "" : Rectangle {
+            height: 92px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            Text {
+                text: "未检测到 Java，请安装 JDK 或设置 JAVA_HOME。";
+                color: Palette.foreground.with-alpha(0.55);
+                font-size: 13px;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+component ThemeOption inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 30px;
+    min-width: 72px;
+    horizontal-stretch: 0;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        alignment: center;
+        cross-axis-alignment: center;
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 12px;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component AppearancePanel inherits Rectangle {
+    background: transparent;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        Text {
+            text: "主题";
+            color: Palette.foreground;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            height: 44px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 8px;
+                spacing: 8px;
+                cross-axis-alignment: center;
+
+                Text {
+                    text: "颜色模式";
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                }
+
+                HorizontalLayout {
+                    spacing: 4px;
+
+                    ThemeOption {
+                        label: "跟随系统";
+                        selected: Theme.preference == ThemePreference.system;
+                        clicked => {
+                            root.set-theme(ThemePreference.system);
+                        }
+                    }
+
+                    ThemeOption {
+                        label: "深色";
+                        selected: Theme.preference == ThemePreference.dark;
+                        clicked => {
+                            root.set-theme(ThemePreference.dark);
+                        }
+                    }
+
+                    ThemeOption {
+                        label: "浅色";
+                        selected: Theme.preference == ThemePreference.light;
+                        clicked => {
+                            root.set-theme(ThemePreference.light);
+                        }
+                    }
+                }
+            }
+        }
+
+        Text {
+            text: "背景";
+            color: Palette.foreground;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            height: 64px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            HorizontalLayout {
+                padding: 8px;
+                spacing: 10px;
+                cross-axis-alignment: center;
+
+                Rectangle {
+                    width: 80px;
+                    height: 48px;
+                    border-radius: 6px;
+                    clip: true;
+
+                    Image {
+                        source: @image-url("../images/backgrounds/Jokull.jpg");
+                        width: 100%;
+                        height: 100%;
+                        image-fit: cover;
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+
+                    Text {
+                        text: "当前背景";
+                        color: Palette.foreground.with-alpha(0.65);
+                        font-size: 12px;
+                    }
+
+                    Text {
+                        text: "Jokull.jpg";
+                        color: Palette.foreground;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+
+    function set-theme(preference: ThemePreference) {
+        Theme.preference = preference;
+        Palette.color-scheme = preference == ThemePreference.system
+            ? ColorScheme.unknown
+            : preference == ThemePreference.dark
+                ? ColorScheme.dark
+                : ColorScheme.light;
+    }
+}
+
+component HelpLinkRow inherits Rectangle {
+    in property <string> title;
+    in property <string> description;
+    in property <string> url;
+
+    height: 56px;
+    border-radius: 6px;
+    background: row-touch.has-hover ? Palette.foreground.with-alpha(0.04) : transparent;
+
+    row-touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            Actions.open-url(root.url);
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 8px;
+        spacing: 8px;
+        cross-axis-alignment: center;
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+
+            Text {
+                text: root.title;
+                color: Palette.foreground;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.description;
+                color: Palette.foreground.with-alpha(0.6);
+                font-size: 12px;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            background: open-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
+
+            Image {
+                source: @image-url("../images/icons/box-arrow-up-right.svg");
+                width: 16px;
+                height: 16px;
+                colorize: Palette.foreground.with-alpha(0.72);
+            }
+
+            open-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    Actions.open-url(root.url);
+                }
+            }
+        }
+    }
+}
+
+component DocsPanel inherits Rectangle {
+    background: transparent;
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 8px;
+
+        Text {
+            text: "Minecraft";
+            color: Palette.foreground;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        Rectangle {
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            VerticalLayout {
+                padding: 6px;
+                spacing: 2px;
+
+                HelpLinkRow {
+                    title: "Minecraft 官网";
+                    description: "官方游戏资讯、下载与购买入口";
+                    url: "https://www.minecraft.net/";
+                }
+
+                HelpLinkRow {
+                    title: "Minecraft Wiki";
+                    description: "方块、合成、机制与版本资料";
+                    url: "https://minecraft.wiki/";
+                }
+
+                HelpLinkRow {
+                    title: "Modrinth";
+                    description: "模组、整合包、资源包与光影";
+                    url: "https://modrinth.com/";
+                }
+
+                HelpLinkRow {
+                    title: "CurseForge";
+                    description: "大型模组与整合包社区";
+                    url: "https://www.curseforge.com/minecraft";
+                }
+
+                HelpLinkRow {
+                    title: "Fabric";
+                    description: "轻量级模组加载器与开发文档";
+                    url: "https://fabricmc.net/";
+                }
+
+                HelpLinkRow {
+                    title: "NeoForge";
+                    description: "新一代 Forge 生态模组加载器";
+                    url: "https://neoforged.net/";
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+export component SettingsView inherits Rectangle {
+    in-out property <SettingsSection> current-section: SettingsSection.game;
+
+    background: transparent;
+
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 16px;
+
+        VerticalLayout {
+            width: 200px;
+            horizontal-stretch: 0;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 4px;
+
+            SettingsMenuItem {
+                label: "全局游戏设置";
+                icon: @image-url("../images/icons/game.svg");
+                selected: root.current-section == SettingsSection.game;
+                clicked => {
+                    root.current-section = SettingsSection.game;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "Java";
+                icon: @image-url("../images/icons/cup-hot.svg");
+                selected: root.current-section == SettingsSection.java;
+                clicked => {
+                    root.current-section = SettingsSection.java;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "通用";
+                icon: @image-url("../images/icons/setting.svg");
+                selected: root.current-section == SettingsSection.general;
+                clicked => {
+                    root.current-section = SettingsSection.general;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "外观";
+                icon: @image-url("../images/icons/palette.svg");
+                selected: root.current-section == SettingsSection.appearance;
+                clicked => {
+                    root.current-section = SettingsSection.appearance;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "下载页";
+                icon: @image-url("../images/icons/cloud-download.svg");
+                selected: root.current-section == SettingsSection.downloads;
+                clicked => {
+                    root.current-section = SettingsSection.downloads;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "文档与帮助";
+                icon: @image-url("../images/icons/question-circle.svg");
+                selected: root.current-section == SettingsSection.docs;
+                clicked => {
+                    root.current-section = SettingsSection.docs;
+                }
+            }
+
+            SettingsMenuItem {
+                label: "关于";
+                icon: @image-url("../images/icons/exclamation-circle.svg");
+                selected: root.current-section == SettingsSection.about;
+                clicked => {
+                    root.current-section = SettingsSection.about;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            background: transparent;
+
+            if root.current-section == SettingsSection.game : GamePanel { }
+
+            if root.current-section == SettingsSection.java : JavaPanel { }
+
+            if root.current-section == SettingsSection.general : SettingsPanel {
+                title: "通用";
+            }
+
+            if root.current-section == SettingsSection.appearance : AppearancePanel { }
+
+            if root.current-section == SettingsSection.downloads : SettingsPanel {
+                title: "下载页";
+            }
+
+            if root.current-section == SettingsSection.docs : DocsPanel { }
+
+            if root.current-section == SettingsSection.about : SettingsPanel {
+                title: "关于";
+            }
+        }
+    }
+}

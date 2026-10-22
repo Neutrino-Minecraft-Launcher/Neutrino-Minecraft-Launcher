@@ -1,0 +1,347 @@
+import { Palette } from "std-widgets.slint";
+import { InstanceTab } from "../models/enums.slint";
+import { AppState } from "../state/app-state.slint";
+
+component InstanceMenuItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.72);
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component InstanceTabItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 32px;
+    horizontal-stretch: 0;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 6px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.72);
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component InstanceCard inherits Rectangle {
+    in property <string> name;
+
+    callback clicked();
+
+    width: 240px;
+    height: 88px;
+    border-radius: 6px;
+    background: touch.has-hover
+        ? Palette.foreground.with-alpha(0.05)
+        : Palette.background.with-alpha(0.5);
+    border-width: 1px;
+    border-color: Palette.foreground.with-alpha(0.08);
+
+    HorizontalLayout {
+        padding: 14px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+
+        Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            background: Palette.accent-background.with-alpha(0.14);
+
+            Image {
+                source: @image-url("../images/icons/instance.svg");
+                width: 20px;
+                height: 20px;
+                colorize: Palette.foreground.with-alpha(0.72);
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+
+            Text {
+                text: root.name;
+                color: Palette.foreground;
+                font-size: 13px;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            Text {
+                text: "Minecraft 实例";
+                color: Palette.foreground.with-alpha(0.55);
+                font-size: 11px;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component InstancesView inherits Rectangle {
+    in-out property <string> selected-instance: "";
+    in-out property <InstanceTab> current-tab: InstanceTab.home;
+
+    background: transparent;
+
+    function tab-title(tab: InstanceTab) -> string {
+        if (tab == InstanceTab.home) {
+            return "首页";
+        }
+        if (tab == InstanceTab.worlds) {
+            return "世界";
+        }
+        if (tab == InstanceTab.mods) {
+            return "模组";
+        }
+        if (tab == InstanceTab.resource-packs) {
+            return "资源包";
+        }
+        if (tab == InstanceTab.schematics) {
+            return "原理图";
+        }
+        return "光影";
+    }
+
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 16px;
+
+        VerticalLayout {
+            width: 200px;
+            horizontal-stretch: 0;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 4px;
+
+            InstanceMenuItem {
+                label: "全部实例";
+                icon: @image-url("../images/icons/boxes.svg");
+                selected: root.selected-instance == "";
+                clicked => {
+                    root.selected-instance = "";
+                }
+            }
+
+            for instance in AppState.instances : InstanceMenuItem {
+                label: instance.name;
+                icon: @image-url("../images/icons/instance.svg");
+                selected: root.selected-instance == instance.name;
+                clicked => {
+                    root.selected-instance = instance.name;
+                    root.current-tab = InstanceTab.home;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            background: transparent;
+
+            if root.selected-instance == "" : VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+
+                Text {
+                    text: "全部实例";
+                    color: Palette.foreground;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "versions 目录中的 Minecraft 实例";
+                    color: Palette.foreground.with-alpha(0.65);
+                    font-size: 13px;
+                }
+
+                if AppState.instances.length == 0 : Text {
+                    text: "未在 versions 目录中找到实例";
+                    color: Palette.foreground.with-alpha(0.45);
+                    font-size: 13px;
+                }
+
+                FlexboxLayout {
+                    spacing: 10px;
+
+                    for instance in AppState.instances : InstanceCard {
+                        name: instance.name;
+                        clicked => {
+                            root.selected-instance = instance.name;
+                            root.current-tab = InstanceTab.home;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+            }
+
+            if root.selected-instance != "" : VerticalLayout {
+                padding: 16px;
+                spacing: 10px;
+
+                Text {
+                    text: root.selected-instance;
+                    color: Palette.foreground;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                HorizontalLayout {
+                    alignment: start;
+                    spacing: 4px;
+
+                    InstanceTabItem {
+                        label: "首页";
+                        icon: @image-url("../images/icons/home.svg");
+                        selected: root.current-tab == InstanceTab.home;
+                        clicked => {
+                            root.current-tab = InstanceTab.home;
+                        }
+                    }
+
+                    InstanceTabItem {
+                        label: "世界";
+                        icon: @image-url("../images/icons/map.svg");
+                        selected: root.current-tab == InstanceTab.worlds;
+                        clicked => {
+                            root.current-tab = InstanceTab.worlds;
+                        }
+                    }
+
+                    InstanceTabItem {
+                        label: "模组";
+                        icon: @image-url("../images/icons/dice-5.svg");
+                        selected: root.current-tab == InstanceTab.mods;
+                        clicked => {
+                            root.current-tab = InstanceTab.mods;
+                        }
+                    }
+
+                    InstanceTabItem {
+                        label: "资源包";
+                        icon: @image-url("../images/icons/resource.svg");
+                        selected: root.current-tab == InstanceTab.resource-packs;
+                        clicked => {
+                            root.current-tab = InstanceTab.resource-packs;
+                        }
+                    }
+
+                    InstanceTabItem {
+                        label: "原理图";
+                        icon: @image-url("../images/icons/schematic.svg");
+                        selected: root.current-tab == InstanceTab.schematics;
+                        clicked => {
+                            root.current-tab = InstanceTab.schematics;
+                        }
+                    }
+
+                    InstanceTabItem {
+                        label: "光影";
+                        icon: @image-url("../images/icons/shader.svg");
+                        selected: root.current-tab == InstanceTab.shaders;
+                        clicked => {
+                            root.current-tab = InstanceTab.shaders;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    border-radius: 6px;
+                    background: Palette.background.with-alpha(0.5);
+                    border-width: 1px;
+                    border-color: Palette.foreground.with-alpha(0.08);
+
+                    Text {
+                        text: root.tab-title(root.current-tab) + "内容将在这里展示";
+                        color: Palette.foreground.with-alpha(0.45);
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

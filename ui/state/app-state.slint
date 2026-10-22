@@ -1,0 +1,15 @@
+import { InstanceInfo } from "../models/instance.slint";
+import { JavaInfo } from "../models/java.slint";
+
+export global AppState {
+    in property <string> game-dir: "";
+    in property <[InstanceInfo]> instances: [];
+
+    in property <JavaInfo> java-info: {
+        version: "",
+        major: 0,
+        lts: false,
+        vendor: "",
+        path: ""
+    };
+}

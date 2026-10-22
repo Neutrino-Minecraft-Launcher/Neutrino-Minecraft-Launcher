@@ -1,12 +1,22 @@
 import "fonts/HarmonyOS_Sans_SC_Regular.ttf";
 import { AppShell } from "shell/app-shell.slint";
 
+export { Actions } from "state/actions.slint";
+export { AppState } from "state/app-state.slint";
+export { InstanceInfo } from "models/instance.slint";
+export { JavaInfo } from "models/java.slint";
+
 export component AppWindow inherits Window {
     title: "Neutrino Minecraft Launcher";
-    width: 1120px;
-    height: 720px;
+    preferred-width: 1120px;
+    preferred-height: 720px;
+    min-width: 900px;
+    min-height: 600px;
+    full-screen: false;
+    no-frame: false;
     background: #0f1115;
     default-font-family: "HarmonyOS Sans SC";
+    default-font-size: 13px;
 
     AppShell {
         width: 100%;

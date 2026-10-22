@@ -20,10 +20,10 @@ export component TopBar inherits Rectangle {
         Rectangle {
             horizontal-stretch: 0;
             height: 64px;
-            border-radius: 8px;
+            border-radius: 6px;
             background: Palette.background;
             border-width: 1px;
-            border-color: Palette.border;
+            border-color: Palette.foreground.with-alpha(0.08);
             drop-shadow-color: rgba(0, 0, 0, 0.12);
             drop-shadow-blur: 18px;
             drop-shadow-offset-y: 6px;
@@ -37,7 +37,7 @@ export component TopBar inherits Rectangle {
                 Rectangle {
                     width: 30px;
                     height: 30px;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     background: @linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
 
                     Text {

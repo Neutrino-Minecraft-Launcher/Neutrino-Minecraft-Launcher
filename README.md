@@ -22,11 +22,14 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 
 - [x] Rust + Slint 桌面应用骨架
 - [x] Slint UI 骨架、顶部导航与壁纸背景
+- [x] 设置页、外观主题切换（跟随系统 / 深色 / 浅色）
+- [x] 实例列表（扫描 `versions` 目录）与详情标签页
+- [x] Java 运行时检测与打开安装目录
 - [x] GitHub Actions CI（格式检查、Clippy、测试）
 - [x] 行为准则与安全策略
 - [ ] Minecraft 版本安装与启动
 - [ ] Microsoft / 离线账户登录
-- [ ] Java 运行时检测与管理
+- [ ] Java 运行时安装与切换
 - [ ] 模组与整合包支持
 - [ ] 下载源与镜像配置
 - [ ] 自动更新与发布流程
@@ -78,9 +81,14 @@ cargo test --all-targets --all-features
 ```text
 .
 ├── src/main.rs               # Rust 入口
+├── src/java.rs               # Java 运行时检测
+├── src/instances.rs          # versions 目录实例扫描
 ├── ui/app-window.slint       # 主窗口入口
 ├── ui/shell/                 # AppShell / TopBar / NavItem
-├── ui/models/                # Page 枚举等共享类型
+├── ui/views/                 # 启动页 / 设置页
+├── ui/models/                # Page、JavaInfo 等共享类型
+├── ui/state/                 # AppState / Actions
+├── ui/theme/                 # 主题偏好
 ├── ui/fonts/                 # 字体资源
 ├── ui/images/                # 图标与壁纸
 ├── build.rs                  # 编译 Slint UI

@@ -7,10 +7,10 @@ component InfoCard inherits Rectangle {
 
     width: 196px;
     height: 88px;
-    border-radius: 8px;
+    border-radius: 6px;
     background: Palette.background.with-alpha(0.94);
     border-width: 1px;
-    border-color: Palette.border;
+    border-color: Palette.foreground.with-alpha(0.08);
     drop-shadow-color: rgba(0, 0, 0, 0.18);
     drop-shadow-blur: 16px;
     drop-shadow-offset-y: 6px;
@@ -23,7 +23,7 @@ component InfoCard inherits Rectangle {
         Rectangle {
             width: 36px;
             height: 36px;
-            border-radius: 8px;
+            border-radius: 6px;
             background: Palette.accent-background.with-alpha(0.14);
 
             Image {

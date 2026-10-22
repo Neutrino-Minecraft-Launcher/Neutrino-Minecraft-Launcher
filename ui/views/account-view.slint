@@ -1,0 +1,140 @@
+import { Palette } from "std-widgets.slint";
+import { AccountFilter } from "../models/enums.slint";
+
+component AccountMenuItem inherits Rectangle {
+    in property <string> label;
+    in property <image> icon;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.14)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 8px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.72);
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            font-weight: root.selected ? 600 : 400;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component AccountView inherits Rectangle {
+    in-out property <AccountFilter> current-filter: AccountFilter.all;
+
+    background: transparent;
+
+    HorizontalLayout {
+        padding: 16px;
+        spacing: 16px;
+
+        VerticalLayout {
+            width: 200px;
+            horizontal-stretch: 0;
+            padding-top: 8px;
+            padding-bottom: 8px;
+            spacing: 4px;
+
+            AccountMenuItem {
+                label: "全部来源";
+                icon: @image-url("../images/icons/people.svg");
+                selected: root.current-filter == AccountFilter.all;
+                clicked => {
+                    root.current-filter = AccountFilter.all;
+                }
+            }
+
+            AccountMenuItem {
+                label: "微软账号";
+                icon: @image-url("../images/icons/microsoft.svg");
+                selected: root.current-filter == AccountFilter.microsoft;
+                clicked => {
+                    root.current-filter = AccountFilter.microsoft;
+                }
+            }
+
+            AccountMenuItem {
+                label: "离线账号";
+                icon: @image-url("../images/icons/offline.svg");
+                selected: root.current-filter == AccountFilter.offline;
+                clicked => {
+                    root.current-filter = AccountFilter.offline;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            background: transparent;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 8px;
+
+                Text {
+                    text: root.current-filter == AccountFilter.all
+                        ? "全部来源"
+                        : root.current-filter == AccountFilter.microsoft
+                            ? "微软账号"
+                            : "离线账号";
+                    color: Palette.foreground;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "账户列表将在这里展示";
+                    color: Palette.foreground.with-alpha(0.65);
+                    font-size: 13px;
+                }
+
+                Rectangle {
+                    height: 92px;
+                    border-radius: 6px;
+                    background: Palette.background.with-alpha(0.5);
+                    border-width: 1px;
+                    border-color: Palette.foreground.with-alpha(0.08);
+
+                    Text {
+                        text: "暂无账户";
+                        color: Palette.foreground.with-alpha(0.45);
+                        font-size: 13px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+            }
+        }
+    }
+}
