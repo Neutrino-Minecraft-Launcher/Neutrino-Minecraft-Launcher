@@ -5,11 +5,12 @@ mod instances;
 mod java;
 mod msa;
 
+use neutrino_minecraft_launcher::core;
 use slint::{ModelRc, VecModel};
-use std::env;
 use std::error::Error;
-use std::path::PathBuf;
 use std::process::Command;
+
+mod desktop;
 
 slint::include_modules!();
 
@@ -18,11 +19,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let ui = AppWindow::new()?;
 
-    let game_dir = official_game_dir();
+    let game_dir = core::default_game_dir();
+    let game_dir_text = game_dir.display().to_string();
     ui.global::<AppState>()
-        .set_game_dir(game_dir.clone().into());
+        .set_game_dir(game_dir_text.clone().into());
 
-    let instances = instances::detect_instances(&game_dir)
+    let instances = instances::detect_instances(&game_dir_text)
         .into_iter()
         .map(|instance| InstanceInfo {
             name: instance.name.into(),
@@ -117,32 +119,41 @@ fn main() -> Result<(), Box<dyn Error>> {
         });
     });
 
+    // 发现页：版本列表与安装
+    let controller = desktop::InstallController::new(ui.as_weak());
+
+    {
+        let controller = controller.clone();
+        ui.global::<Actions>()
+            .on_refresh_versions(move || controller.refresh_versions());
+    }
+    {
+        let controller = controller.clone();
+        ui.global::<Actions>()
+            .on_filter_versions(move |key| controller.apply_filter(key.as_str()));
+    }
+    {
+        let controller = controller.clone();
+        ui.global::<Actions>()
+            .on_install_version(move |version| controller.install(version.as_str()));
+    }
+    {
+        let controller = controller.clone();
+        ui.global::<Actions>()
+            .on_open_category(move |key| controller.open_category(key.as_str()));
+    }
+    {
+        let controller = controller.clone();
+        ui.global::<Actions>()
+            .on_download_project(move |id| controller.download_project(id.as_str()));
+    }
+
+    // 启动时后台拉一次版本清单，进“发现”页就有内容
+    controller.refresh_versions();
+
     ui.run()?;
 
     Ok(())
-}
-
-fn official_game_dir() -> String {
-    if cfg!(windows) {
-        env::var_os("APPDATA")
-            .map(PathBuf::from)
-            .unwrap_or_default()
-            .join(".minecraft")
-    } else if cfg!(target_os = "macos") {
-        env::var_os("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_default()
-            .join("Library")
-            .join("Application Support")
-            .join("minecraft")
-    } else {
-        env::var_os("HOME")
-            .map(PathBuf::from)
-            .unwrap_or_default()
-            .join(".minecraft")
-    }
-    .display()
-    .to_string()
 }
 
 fn open_folder(path: &str) -> std::io::Result<()> {

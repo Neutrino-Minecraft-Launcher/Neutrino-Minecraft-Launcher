@@ -2,4 +2,16 @@ export global Actions {
     callback open-folder(string);
     callback open-url(string);
     callback start-microsoft-login();
+
+    /// 重新拉取版本清单（会走网络）
+    callback refresh-versions();
+    /// 切换原版版本的筛选条件，取值为 "release" / "snapshot" / "all"
+    callback filter-versions(string);
+    /// 安装指定原版版本
+    callback install-version(string);
+
+    /// 切换发现页类别：vanilla / mod / shader / resourcepack / modpack
+    callback open-category(string);
+    /// 下载（安装）指定项目到对应目录
+    callback download-project(string);
 }
