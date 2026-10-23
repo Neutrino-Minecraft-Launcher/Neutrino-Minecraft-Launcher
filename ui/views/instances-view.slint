@@ -1,6 +1,8 @@
-import { Palette } from "std-widgets.slint";
+import { ListView, Palette } from "std-widgets.slint";
 import { InstanceTab } from "../models/enums.slint";
+import { ContentFile } from "../models/instance.slint";
 import { AppState } from "../state/app-state.slint";
+import { Actions } from "../state/actions.slint";
 
 component InstanceMenuItem inherits Rectangle {
     in property <string> label;
@@ -156,30 +158,387 @@ component InstanceCard inherits Rectangle {
     }
 }
 
-export component InstancesView inherits Rectangle {
-    in-out property <string> selected-instance: "";
-    in-out property <InstanceTab> current-tab: InstanceTab.home;
+component ContentRow inherits Rectangle {
+    in property <string> name;
+    in property <int> size;
+    in property <bool> enabled: true;
+    in property <image> icon;
+
+    pure function format-size(bytes: int) -> string {
+        if (bytes >= 1073741824) {
+            return floor(bytes / 1073741824.0) + " GB";
+        }
+        if (bytes >= 1048576) {
+            return floor(bytes / 1048576.0) + " MB";
+        }
+        if (bytes >= 1024) {
+            return floor(bytes / 1024.0) + " KB";
+        }
+        return bytes + " B";
+    }
+
+    height: 44px;
+    background: row-touch.has-hover ? Palette.foreground.with-alpha(0.04) : transparent;
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        cross-axis-alignment: center;
+
+        Image {
+            source: root.icon;
+            width: 16px;
+            height: 16px;
+            colorize: Palette.foreground.with-alpha(0.6);
+        }
+
+        Text {
+            text: root.name;
+            color: Palette.foreground;
+            font-size: 13px;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        Rectangle {
+            height: 20px;
+            border-radius: 4px;
+            background: root.enabled
+                ? Palette.accent-background.with-alpha(0.14)
+                : Palette.foreground.with-alpha(0.06);
+
+            HorizontalLayout {
+                padding-left: 6px;
+                padding-right: 6px;
+                alignment: center;
+                cross-axis-alignment: center;
+
+                Text {
+                    text: root.enabled ? "已启用" : "已禁用";
+                    color: root.enabled
+                        ? Palette.accent-background
+                        : Palette.foreground.with-alpha(0.5);
+                    font-size: 11px;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        Text {
+            text: root.format-size(root.size);
+            color: Palette.foreground.with-alpha(0.45);
+            font-size: 11px;
+            vertical-alignment: center;
+        }
+    }
+
+    row-touch := TouchArea { }
+}
+
+component ContentPanel inherits Rectangle {
+    in property <string> title;
+    in property <string> empty-text;
+    in property <string> empty-hint;
+    in property <string> instance-path;
+    in property <string> folder-name;
+    in property <image> icon;
+    in property <[ContentFile]> items;
 
     background: transparent;
 
-    function tab-title(tab: InstanceTab) -> string {
-        if (tab == InstanceTab.home) {
-            return "首页";
+    VerticalLayout {
+        padding-top: 2px;
+        spacing: 8px;
+
+        HorizontalLayout {
+            spacing: 8px;
+            cross-axis-alignment: center;
+
+            Text {
+                text: root.title;
+                color: Palette.foreground;
+                font-size: 14px;
+                font-weight: 600;
+                horizontal-stretch: 1;
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: "\{root.items.length} 项";
+                color: Palette.foreground.with-alpha(0.5);
+                font-size: 12px;
+                vertical-alignment: center;
+            }
+
+            Rectangle {
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                background: folder-touch.has-hover
+                    ? Palette.foreground.with-alpha(0.06)
+                    : transparent;
+
+                Image {
+                    source: @image-url("../images/icons/folder2-open.svg");
+                    width: 16px;
+                    height: 16px;
+                    colorize: Palette.foreground.with-alpha(0.72);
+                }
+
+                folder-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        Actions.open-folder(root.instance-path + "/" + root.folder-name);
+                    }
+                }
+            }
         }
-        if (tab == InstanceTab.worlds) {
-            return "世界";
+
+        Rectangle {
+            vertical-stretch: 1;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+            clip: true;
+
+            if root.items.length == 0 : VerticalLayout {
+                alignment: center;
+                spacing: 6px;
+
+                Image {
+                    source: root.icon;
+                    width: 28px;
+                    height: 28px;
+                    colorize: Palette.foreground.with-alpha(0.3);
+                }
+
+                Text {
+                    text: root.empty-text;
+                    color: Palette.foreground.with-alpha(0.55);
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: root.empty-hint;
+                    color: Palette.foreground.with-alpha(0.38);
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                }
+            }
+
+            if root.items.length > 0 : ListView {
+                x: 1px;
+                y: 1px;
+                width: parent.width - 2px;
+                height: parent.height - 2px;
+
+                for item in root.items : ContentRow {
+                    name: item.name;
+                    size: item.size;
+                    enabled: item.enabled;
+                    icon: root.icon;
+                }
+            }
         }
-        if (tab == InstanceTab.mods) {
-            return "模组";
-        }
-        if (tab == InstanceTab.resource-packs) {
-            return "资源包";
-        }
-        if (tab == InstanceTab.schematics) {
-            return "原理图";
-        }
-        return "光影";
     }
+}
+
+component StatCard inherits Rectangle {
+    in property <string> label;
+    in property <int> count;
+    in property <image> icon;
+
+    height: 72px;
+    horizontal-stretch: 1;
+    border-radius: 6px;
+    background: Palette.background.with-alpha(0.5);
+    border-width: 1px;
+    border-color: Palette.foreground.with-alpha(0.08);
+
+    HorizontalLayout {
+        padding: 14px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+
+        Rectangle {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            background: Palette.accent-background.with-alpha(0.14);
+
+            Image {
+                source: root.icon;
+                width: 18px;
+                height: 18px;
+                colorize: Palette.accent-background;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            spacing: 1px;
+
+            Text {
+                text: "\{root.count}";
+                color: Palette.foreground;
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: root.label;
+                color: Palette.foreground.with-alpha(0.6);
+                font-size: 12px;
+            }
+        }
+    }
+}
+
+component InstanceHomePanel inherits Rectangle {
+    in property <string> instance-path;
+    in property <int> mods-count;
+    in property <int> resource-packs-count;
+    in property <int> shader-packs-count;
+
+    background: transparent;
+
+    VerticalLayout {
+        padding-top: 2px;
+        spacing: 10px;
+
+        Text {
+            text: "实例概览";
+            color: Palette.foreground;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        HorizontalLayout {
+            spacing: 10px;
+
+            StatCard {
+                label: "模组";
+                count: root.mods-count;
+                icon: @image-url("../images/icons/dice-5.svg");
+            }
+
+            StatCard {
+                label: "资源包";
+                count: root.resource-packs-count;
+                icon: @image-url("../images/icons/resource.svg");
+            }
+
+            StatCard {
+                label: "光影";
+                count: root.shader-packs-count;
+                icon: @image-url("../images/icons/shader.svg");
+            }
+        }
+
+        Rectangle {
+            height: 64px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            HorizontalLayout {
+                padding: 12px;
+                spacing: 12px;
+                cross-axis-alignment: center;
+
+                Rectangle {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    background: Palette.accent-background.with-alpha(0.14);
+
+                    Image {
+                        source: @image-url("../images/icons/folder.svg");
+                        width: 18px;
+                        height: 18px;
+                        colorize: Palette.accent-background;
+                    }
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    spacing: 2px;
+
+                    Text {
+                        text: "实例目录";
+                        color: Palette.foreground;
+                        font-size: 13px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        text: root.instance-path;
+                        color: Palette.foreground.with-alpha(0.5);
+                        font-size: 11px;
+                        overflow: elide;
+                    }
+                }
+
+                Rectangle {
+                    width: 34px;
+                    height: 34px;
+                    border-radius: 6px;
+                    background: folder-touch.has-hover
+                        ? Palette.foreground.with-alpha(0.06)
+                        : transparent;
+
+                    Image {
+                        source: @image-url("../images/icons/folder2-open.svg");
+                        width: 18px;
+                        height: 18px;
+                        colorize: Palette.foreground.with-alpha(0.72);
+                    }
+
+                    folder-touch := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            Actions.open-folder(root.instance-path);
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
+component PlaceholderPanel inherits Rectangle {
+    in property <string> title;
+
+    border-radius: 6px;
+    background: Palette.background.with-alpha(0.5);
+    border-width: 1px;
+    border-color: Palette.foreground.with-alpha(0.08);
+
+    Text {
+        text: root.title + "内容将在这里展示";
+        color: Palette.foreground.with-alpha(0.45);
+        font-size: 13px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component InstancesView inherits Rectangle {
+    in-out property <string> selected-instance: "";
+    in-out property <string> selected-instance-path: "";
+    in-out property <InstanceTab> current-tab: InstanceTab.home;
+
+    background: transparent;
 
     HorizontalLayout {
         padding: 16px;
@@ -198,6 +557,9 @@ export component InstancesView inherits Rectangle {
                 selected: root.selected-instance == "";
                 clicked => {
                     root.selected-instance = "";
+                    root.selected-instance-path = "";
+                    root.current-tab = InstanceTab.home;
+                    Actions.load-instance-content("");
                 }
             }
 
@@ -207,7 +569,9 @@ export component InstancesView inherits Rectangle {
                 selected: root.selected-instance == instance.name;
                 clicked => {
                     root.selected-instance = instance.name;
+                    root.selected-instance-path = instance.path;
                     root.current-tab = InstanceTab.home;
+                    Actions.load-instance-content(instance.path);
                 }
             }
         }
@@ -246,7 +610,9 @@ export component InstancesView inherits Rectangle {
                         name: instance.name;
                         clicked => {
                             root.selected-instance = instance.name;
+                            root.selected-instance-path = instance.path;
                             root.current-tab = InstanceTab.home;
+                            Actions.load-instance-content(instance.path);
                         }
                     }
                 }
@@ -260,11 +626,51 @@ export component InstancesView inherits Rectangle {
                 padding: 16px;
                 spacing: 10px;
 
-                Text {
-                    text: root.selected-instance;
-                    color: Palette.foreground;
-                    font-size: 18px;
-                    font-weight: 600;
+                HorizontalLayout {
+                    spacing: 10px;
+                    cross-axis-alignment: center;
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 2px;
+
+                        Text {
+                            text: root.selected-instance;
+                            color: Palette.foreground;
+                            font-size: 18px;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: root.selected-instance-path;
+                            color: Palette.foreground.with-alpha(0.45);
+                            font-size: 11px;
+                            overflow: elide;
+                        }
+                    }
+
+                    Rectangle {
+                        width: 34px;
+                        height: 34px;
+                        border-radius: 6px;
+                        background: folder-touch.has-hover
+                            ? Palette.foreground.with-alpha(0.06)
+                            : transparent;
+
+                        Image {
+                            source: @image-url("../images/icons/folder2-open.svg");
+                            width: 18px;
+                            height: 18px;
+                            colorize: Palette.foreground.with-alpha(0.72);
+                        }
+
+                        folder-touch := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                Actions.open-folder(root.selected-instance-path);
+                            }
+                        }
+                    }
                 }
 
                 HorizontalLayout {
@@ -290,7 +696,7 @@ export component InstancesView inherits Rectangle {
                     }
 
                     InstanceTabItem {
-                        label: "模组";
+                        label: "模组 (\{AppState.mods.length})";
                         icon: @image-url("../images/icons/dice-5.svg");
                         selected: root.current-tab == InstanceTab.mods;
                         clicked => {
@@ -299,7 +705,7 @@ export component InstancesView inherits Rectangle {
                     }
 
                     InstanceTabItem {
-                        label: "资源包";
+                        label: "资源包 (\{AppState.resource-packs.length})";
                         icon: @image-url("../images/icons/resource.svg");
                         selected: root.current-tab == InstanceTab.resource-packs;
                         clicked => {
@@ -317,7 +723,7 @@ export component InstancesView inherits Rectangle {
                     }
 
                     InstanceTabItem {
-                        label: "光影";
+                        label: "光影 (\{AppState.shader-packs.length})";
                         icon: @image-url("../images/icons/shader.svg");
                         selected: root.current-tab == InstanceTab.shaders;
                         clicked => {
@@ -326,20 +732,55 @@ export component InstancesView inherits Rectangle {
                     }
                 }
 
-                Rectangle {
+                if root.current-tab == InstanceTab.home : InstanceHomePanel {
                     vertical-stretch: 1;
-                    border-radius: 6px;
-                    background: Palette.background.with-alpha(0.5);
-                    border-width: 1px;
-                    border-color: Palette.foreground.with-alpha(0.08);
+                    instance-path: root.selected-instance-path;
+                    mods-count: AppState.mods.length;
+                    resource-packs-count: AppState.resource-packs.length;
+                    shader-packs-count: AppState.shader-packs.length;
+                }
 
-                    Text {
-                        text: root.tab-title(root.current-tab) + "内容将在这里展示";
-                        color: Palette.foreground.with-alpha(0.45);
-                        font-size: 13px;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
+                if root.current-tab == InstanceTab.mods : ContentPanel {
+                    vertical-stretch: 1;
+                    title: "模组";
+                    empty-text: "未安装模组";
+                    empty-hint: "将 .jar 文件放入实例的 mods 文件夹";
+                    instance-path: root.selected-instance-path;
+                    folder-name: "mods";
+                    icon: @image-url("../images/icons/dice-5.svg");
+                    items: AppState.mods;
+                }
+
+                if root.current-tab == InstanceTab.resource-packs : ContentPanel {
+                    vertical-stretch: 1;
+                    title: "资源包";
+                    empty-text: "未安装资源包";
+                    empty-hint: "将 .zip 文件或资源包文件夹放入 resourcepacks";
+                    instance-path: root.selected-instance-path;
+                    folder-name: "resourcepacks";
+                    icon: @image-url("../images/icons/resource.svg");
+                    items: AppState.resource-packs;
+                }
+
+                if root.current-tab == InstanceTab.shaders : ContentPanel {
+                    vertical-stretch: 1;
+                    title: "光影";
+                    empty-text: "未安装光影";
+                    empty-hint: "将 .zip 文件或光影包文件夹放入 shaderpacks";
+                    instance-path: root.selected-instance-path;
+                    folder-name: "shaderpacks";
+                    icon: @image-url("../images/icons/shader.svg");
+                    items: AppState.shader-packs;
+                }
+
+                if root.current-tab == InstanceTab.worlds : PlaceholderPanel {
+                    vertical-stretch: 1;
+                    title: "世界";
+                }
+
+                if root.current-tab == InstanceTab.schematics : PlaceholderPanel {
+                    vertical-stretch: 1;
+                    title: "原理图";
                 }
             }
         }

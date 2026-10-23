@@ -1,5 +1,13 @@
+import { SkinType } from "../models/enums.slint";
+
 export global Actions {
     callback open-folder(string);
     callback open-url(string);
+    callback load-instance-content(string);
+    callback add-offline-account(string) -> string;
+    callback remove-account(string);
+    callback set-active-account(string);
+    callback set-default-skin(string, SkinType);
+    callback choose-custom-skin(string);
     callback start-microsoft-login();
 }

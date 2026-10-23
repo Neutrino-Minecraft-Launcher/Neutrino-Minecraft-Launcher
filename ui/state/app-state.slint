@@ -1,9 +1,15 @@
-import { InstanceInfo } from "../models/instance.slint";
+import { AccountInfo } from "../models/account.slint";
+import { InstanceInfo, ContentFile } from "../models/instance.slint";
 import { JavaInfo } from "../models/java.slint";
 
 export global AppState {
     in property <string> game-dir: "";
     in property <[InstanceInfo]> instances: [];
+    in property <[ContentFile]> mods: [];
+    in property <[ContentFile]> resource-packs: [];
+    in property <[ContentFile]> shader-packs: [];
+    in property <[AccountInfo]> accounts: [];
+    in property <string> active-account: "";
 
     in property <JavaInfo> java-info: {
         version: "",

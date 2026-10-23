@@ -1,4 +1,5 @@
 import { Palette } from "std-widgets.slint";
+import { AppState } from "../state/app-state.slint";
 
 component InfoCard inherits Rectangle {
     in property <string> title;
@@ -71,7 +72,9 @@ export component LaunchView inherits Rectangle {
 
             InfoCard {
                 title: "角色";
-                subtitle: "未选择角色";
+                subtitle: AppState.active-account == ""
+                    ? "未选择角色"
+                    : AppState.active-account;
                 icon: @image-url("../images/icons/account.svg");
             }
 
