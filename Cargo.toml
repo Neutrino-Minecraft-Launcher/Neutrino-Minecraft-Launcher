@@ -19,8 +19,10 @@ path = "src/bin/neutrino-install.rs"
 
 [dependencies]
 dotenvy = "0.15"
+image = { version = "0.25", default-features = false, features = ["png"] }
 minecraft-msa-auth = { version = "0.5.0", features = ["is_sync", "ureq"] }
 oauth2 = { version = "5.0.0", features = ["reqwest-blocking"] }
+rfd = { version = "0.17.2", default-features = false }
 rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

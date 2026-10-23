@@ -1,6 +1,7 @@
-import { Palette } from "std-widgets.slint";
-import { AccountFilter } from "../models/enums.slint";
+import { LineEdit, ListView, Palette } from "std-widgets.slint";
+import { AccountFilter, SkinType } from "../models/enums.slint";
 import { Actions } from "../state/actions.slint";
+import { AppState } from "../state/app-state.slint";
 import { MsaState, MsaStatus } from "../state/msa-state.slint";
 
 component AccountMenuItem inherits Rectangle {
@@ -85,6 +86,480 @@ component LoginButton inherits Rectangle {
     }
 }
 
+component DialogButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> primary: false;
+
+    callback clicked();
+
+    height: 32px;
+    horizontal-stretch: 0;
+    border-radius: 6px;
+    background: root.primary
+        ? touch.has-hover
+            ? Palette.accent-background.with-alpha(0.24)
+            : Palette.accent-background.with-alpha(0.16)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.08)
+            : Palette.foreground.with-alpha(0.04);
+    border-width: 1px;
+    border-color: root.primary ? transparent : Palette.foreground.with-alpha(0.12);
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        alignment: center;
+        cross-axis-alignment: center;
+
+        Text {
+            text: root.label;
+            color: root.primary ? Palette.accent-background : Palette.foreground;
+            font-size: 12px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component AccountCard inherits Rectangle {
+    in property <string> name;
+    in property <bool> active;
+    in property <SkinType> skin;
+    in property <image> avatar;
+
+    callback activate();
+    callback remove();
+    callback manage-skin();
+
+    height: 62px;
+    border-radius: 6px;
+    background: root.active
+        ? Palette.accent-background.with-alpha(0.12)
+        : activate-touch.has-hover
+            ? Palette.foreground.with-alpha(0.04)
+            : Palette.background.with-alpha(0.5);
+    border-width: 1px;
+    border-color: root.active
+        ? Palette.accent-background.with-alpha(0.45)
+        : Palette.foreground.with-alpha(0.08);
+
+    activate-touch := TouchArea {
+        x: 0;
+        y: 0;
+        width: parent.width - 92px;
+        height: parent.height;
+        mouse-cursor: pointer;
+        clicked => {
+            root.activate();
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 8px;
+        spacing: 12px;
+        cross-axis-alignment: center;
+
+        Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            clip: true;
+            background: Palette.accent-background.with-alpha(0.14);
+
+            Image {
+                source: root.skin == SkinType.steve
+                    ? @image-url("../images/faces/steve.png")
+                    : root.skin == SkinType.alex
+                        ? @image-url("../images/faces/alex.png")
+                        : root.avatar;
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            alignment: center;
+            spacing: 2px;
+
+            HorizontalLayout {
+                spacing: 6px;
+                cross-axis-alignment: center;
+
+                Text {
+                    text: root.name;
+                    color: Palette.foreground;
+                    font-size: 13px;
+                    font-weight: 600;
+                    horizontal-stretch: 1;
+                    vertical-alignment: center;
+                    overflow: elide;
+                }
+
+                if root.active : Rectangle {
+                    height: 18px;
+                    border-radius: 4px;
+                    background: Palette.accent-background.with-alpha(0.16);
+
+                    HorizontalLayout {
+                        padding-left: 5px;
+                        padding-right: 5px;
+                        alignment: center;
+                        cross-axis-alignment: center;
+
+                        Text {
+                            text: "使用中";
+                            color: Palette.accent-background;
+                            font-size: 10px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: "离线账号";
+                color: Palette.foreground.with-alpha(0.5);
+                font-size: 11px;
+            }
+        }
+
+        Rectangle {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            background: remove-touch.has-hover
+                ? #c0392b22
+                : transparent;
+
+            Image {
+                source: @image-url("../images/icons/trash.svg");
+                width: 15px;
+                height: 15px;
+                colorize: remove-touch.has-hover
+                    ? #c0392b
+                    : Palette.foreground.with-alpha(0.42);
+            }
+
+            remove-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.remove();
+                }
+            }
+        }
+
+        Rectangle {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            background: brush-touch.has-hover
+                ? Palette.foreground.with-alpha(0.08)
+                : transparent;
+
+            Image {
+                source: @image-url("../images/icons/brush.svg");
+                width: 15px;
+                height: 15px;
+                colorize: brush-touch.has-hover
+                    ? Palette.foreground
+                    : Palette.foreground.with-alpha(0.55);
+            }
+
+            brush-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.manage-skin();
+                }
+            }
+        }
+    }
+}
+
+component SkinOptionRow inherits Rectangle {
+    in property <string> label;
+    in property <bool> selected;
+
+    callback clicked();
+
+    height: 40px;
+    border-radius: 6px;
+    background: root.selected
+        ? Palette.accent-background.with-alpha(0.12)
+        : touch.has-hover
+            ? Palette.foreground.with-alpha(0.05)
+            : transparent;
+    border-width: 1px;
+    border-color: root.selected
+        ? Palette.accent-background.with-alpha(0.45)
+        : Palette.foreground.with-alpha(0.08);
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        cross-axis-alignment: center;
+
+        Rectangle {
+            width: 14px;
+            height: 14px;
+            border-radius: 7px;
+            border-width: 1px;
+            border-color: root.selected
+                ? Palette.accent-background
+                : Palette.foreground.with-alpha(0.4);
+
+            if root.selected : Rectangle {
+                x: 3px;
+                y: 3px;
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: Palette.accent-background;
+            }
+        }
+
+        Text {
+            text: root.label;
+            color: Palette.foreground;
+            font-size: 13px;
+            horizontal-stretch: 1;
+            vertical-alignment: center;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+component SkinDialog inherits Rectangle {
+    in property <string> account;
+
+    callback cancel();
+
+    background: rgba(0, 0, 0, 0.55);
+
+    backdrop := TouchArea {
+        clicked => {
+            root.cancel();
+        }
+    }
+
+    dialog := Rectangle {
+        width: 400px;
+        height: 306px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 8px;
+        background: Palette.background;
+        border-width: 1px;
+        border-color: Palette.foreground.with-alpha(0.12);
+        drop-shadow-color: rgba(0, 0, 0, 0.35);
+        drop-shadow-blur: 28px;
+        drop-shadow-offset-y: 10px;
+
+        TouchArea { }
+
+        VerticalLayout {
+            padding: 20px;
+            spacing: 12px;
+
+            Text {
+                text: "管理皮肤 · " + root.account;
+                color: Palette.foreground;
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            HorizontalLayout {
+                spacing: 16px;
+                cross-axis-alignment: center;
+
+                Rectangle {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 8px;
+                    clip: true;
+                    border-width: 1px;
+                    border-color: Palette.foreground.with-alpha(0.12);
+
+                    for account in AppState.accounts : Image {
+                        visible: account.name == root.account;
+                        source: account.skin == SkinType.steve
+                            ? @image-url("../images/faces/steve.png")
+                            : account.skin == SkinType.alex
+                                ? @image-url("../images/faces/alex.png")
+                                : account.avatar;
+                        width: 100%;
+                        height: 100%;
+                    }
+                }
+
+                for account in AppState.accounts : VerticalLayout {
+                    visible: account.name == root.account;
+                    horizontal-stretch: 1;
+                    spacing: 6px;
+
+                    SkinOptionRow {
+                        label: "Steve（默认）";
+                        selected: account.skin == SkinType.steve;
+                        clicked => {
+                            Actions.set-default-skin(root.account, SkinType.steve);
+                        }
+                    }
+
+                    SkinOptionRow {
+                        label: "Alex（默认）";
+                        selected: account.skin == SkinType.alex;
+                        clicked => {
+                            Actions.set-default-skin(root.account, SkinType.alex);
+                        }
+                    }
+
+                    SkinOptionRow {
+                        label: "自定义皮肤";
+                        selected: account.skin == SkinType.custom;
+                        clicked => {
+                            Actions.choose-custom-skin(root.account);
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: "自定义皮肤请选择 64×64 或 128×128 的 PNG 文件。";
+                color: Palette.foreground.with-alpha(0.5);
+                font-size: 11px;
+                wrap: word-wrap;
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+
+                DialogButton {
+                    label: "关闭";
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+            }
+        }
+    }
+}
+
+component AddAccountDialog inherits Rectangle {
+    in-out property <string> name;
+    in-out property <string> error;
+
+    callback cancel();
+    callback submit();
+
+    background: rgba(0, 0, 0, 0.55);
+
+    backdrop := TouchArea {
+        clicked => {
+            root.cancel();
+        }
+    }
+
+    dialog := Rectangle {
+        width: 380px;
+        height: 232px;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: 8px;
+        background: Palette.background;
+        border-width: 1px;
+        border-color: Palette.foreground.with-alpha(0.12);
+        drop-shadow-color: rgba(0, 0, 0, 0.35);
+        drop-shadow-blur: 28px;
+        drop-shadow-offset-y: 10px;
+
+        TouchArea { }
+
+        VerticalLayout {
+            padding: 20px;
+            spacing: 10px;
+
+            Text {
+                text: "添加离线角色";
+                color: Palette.foreground;
+                font-size: 18px;
+                font-weight: 600;
+            }
+
+            Text {
+                text: "离线角色保存在本地，无需登录 Microsoft 账号。";
+                color: Palette.foreground.with-alpha(0.65);
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+
+            LineEdit {
+                placeholder-text: "角色名（3-16 位字母、数字或下划线）";
+                text <=> root.name;
+                edited => {
+                    root.error = "";
+                }
+                accepted => {
+                    root.submit();
+                }
+                init => {
+                    self.focus();
+                }
+            }
+
+            if root.error != "" : Text {
+                text: root.error;
+                color: #e74c3c;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                spacing: 8px;
+
+                DialogButton {
+                    label: "取消";
+                    clicked => {
+                        root.cancel();
+                    }
+                }
+
+                DialogButton {
+                    label: "添加角色";
+                    primary: true;
+                    clicked => {
+                        root.submit();
+                    }
+                }
+            }
+        }
+    }
+}
+
 component MicrosoftLoginPanel inherits Rectangle {
     background: transparent;
 
@@ -121,21 +596,7 @@ component MicrosoftLoginPanel inherits Rectangle {
     }
 
     VerticalLayout {
-        padding: 16px;
         spacing: 10px;
-
-        Text {
-            text: "微软账号";
-            color: Palette.foreground;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        Text {
-            text: "使用 Microsoft 账号登录 Minecraft";
-            color: Palette.foreground.with-alpha(0.65);
-            font-size: 13px;
-        }
 
         Rectangle {
             border-radius: 6px;
@@ -250,10 +711,131 @@ component MicrosoftLoginPanel inherits Rectangle {
     }
 }
 
+component AccountListPanel inherits Rectangle {
+    background: transparent;
+
+    callback manage-skin(string);
+
+    VerticalLayout {
+        spacing: 8px;
+
+        if AppState.accounts.length == 0 : Rectangle {
+            height: 112px;
+            border-radius: 6px;
+            background: Palette.background.with-alpha(0.5);
+            border-width: 1px;
+            border-color: Palette.foreground.with-alpha(0.08);
+
+            VerticalLayout {
+                alignment: center;
+                spacing: 6px;
+
+                Image {
+                    source: @image-url("../images/icons/offline.svg");
+                    width: 24px;
+                    height: 24px;
+                    colorize: Palette.foreground.with-alpha(0.3);
+                }
+
+                Text {
+                    text: "暂无角色";
+                    color: Palette.foreground.with-alpha(0.55);
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "点击右上角的 + 添加一个离线角色";
+                    color: Palette.foreground.with-alpha(0.38);
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                }
+            }
+        }
+
+        if AppState.accounts.length > 0 : ListView {
+            vertical-stretch: 1;
+
+            for account in AppState.accounts : AccountCard {
+                name: account.name;
+                skin: account.skin;
+                avatar: account.avatar;
+                active: AppState.active-account == account.name;
+                activate => {
+                    Actions.set-active-account(account.name);
+                }
+                remove => {
+                    Actions.remove-account(account.name);
+                }
+                manage-skin => {
+                    root.manage-skin(account.name);
+                }
+            }
+        }
+
+        if AppState.accounts.length == 0 : Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
+
 export component AccountView inherits Rectangle {
     in-out property <AccountFilter> current-filter: AccountFilter.all;
+    in-out property <bool> show-add-dialog: false;
+    in-out property <string> new-account-name: "";
+    in-out property <string> add-error: "";
+    in-out property <bool> show-skin-dialog: false;
+    in-out property <string> skin-dialog-account: "";
 
     background: transparent;
+
+    pure function filter-title() -> string {
+        if (root.current-filter == AccountFilter.microsoft) {
+            return "微软账号";
+        }
+        if (root.current-filter == AccountFilter.offline) {
+            return "离线角色";
+        }
+        return "全部角色";
+    }
+
+    pure function filter-subtitle() -> string {
+        if (root.current-filter == AccountFilter.microsoft) {
+            return "使用 Microsoft 账号登录 Minecraft";
+        }
+        if (root.current-filter == AccountFilter.offline) {
+            return "本地角色，无需网络验证";
+        }
+        return "管理启动器中的所有角色";
+    }
+
+    function open-add-dialog() {
+        root.new-account-name = "";
+        root.add-error = "";
+        root.show-add-dialog = true;
+    }
+
+    function open-skin-dialog(name: string) {
+        root.skin-dialog-account = name;
+        root.show-skin-dialog = true;
+    }
+
+    function submit-new-account() {
+        if (root.new-account-name.is-empty) {
+            root.add-error = "请输入角色名";
+            return;
+        }
+
+        root.add-error = Actions.add-offline-account(root.new-account-name);
+        if (root.add-error.is-empty) {
+            root.new-account-name = "";
+            root.show-add-dialog = false;
+
+            if (root.current-filter == AccountFilter.microsoft) {
+                root.current-filter = AccountFilter.offline;
+            }
+        }
+    }
 
     HorizontalLayout {
         padding: 16px;
@@ -298,41 +880,94 @@ export component AccountView inherits Rectangle {
             horizontal-stretch: 1;
             background: transparent;
 
-            if root.current-filter == AccountFilter.microsoft : MicrosoftLoginPanel { }
-
-            if root.current-filter != AccountFilter.microsoft : VerticalLayout {
+            VerticalLayout {
                 padding: 16px;
                 spacing: 8px;
 
-                Text {
-                    text: root.current-filter == AccountFilter.all
-                        ? "全部来源"
-                        : "离线账号";
-                    color: Palette.foreground;
-                    font-size: 18px;
-                    font-weight: 600;
-                }
-
-                Rectangle {
-                    height: 92px;
-                    border-radius: 6px;
-                    background: Palette.background.with-alpha(0.5);
-                    border-width: 1px;
-                    border-color: Palette.foreground.with-alpha(0.08);
+                VerticalLayout {
+                    spacing: 2px;
 
                     Text {
-                        text: "暂无账户";
-                        color: Palette.foreground.with-alpha(0.45);
+                        text: root.filter-title();
+                        color: Palette.foreground;
+                        font-size: 18px;
+                        font-weight: 600;
+                    }
+
+                    Text {
+                        text: root.filter-subtitle();
+                        color: Palette.foreground.with-alpha(0.65);
                         font-size: 13px;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
                     }
                 }
 
-                Rectangle {
+                if root.current-filter == AccountFilter.microsoft : MicrosoftLoginPanel {
                     vertical-stretch: 1;
                 }
+
+                if root.current-filter != AccountFilter.microsoft : AccountListPanel {
+                    vertical-stretch: 1;
+                    manage-skin(name) => {
+                        root.open-skin-dialog(name);
+                    }
+                }
             }
+
+            Rectangle {
+                width: 34px;
+                height: 34px;
+                x: parent.width - self.width - 16px;
+                y: 16px;
+                border-radius: 6px;
+                background: plus-touch.has-hover
+                    ? Palette.accent-background.with-alpha(0.24)
+                    : Palette.accent-background.with-alpha(0.14);
+
+                Image {
+                    source: @image-url("../images/icons/plus.svg");
+                    width: 16px;
+                    height: 16px;
+                    colorize: Palette.accent-background;
+                }
+
+                plus-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.open-add-dialog();
+                    }
+                }
+            }
+        }
+    }
+
+    if root.show-add-dialog : AddAccountDialog {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+
+        name <=> root.new-account-name;
+        error <=> root.add-error;
+
+        cancel => {
+            root.show-add-dialog = false;
+        }
+
+        submit => {
+            root.submit-new-account();
+        }
+    }
+
+    if root.show-skin-dialog : SkinDialog {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+
+        account: root.skin-dialog-account;
+
+        cancel => {
+            root.show-skin-dialog = false;
         }
     }
 }

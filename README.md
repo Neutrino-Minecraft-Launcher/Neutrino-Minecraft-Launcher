@@ -25,6 +25,9 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 - [x] Slint UI 骨架、顶部导航与壁纸背景
 - [x] 设置页、外观主题切换（跟随系统 / 深色 / 浅色）
 - [x] 实例列表（扫描 `versions` 目录）与详情标签页
+- [x] 实例内容扫描（模组、资源包、光影）
+- [x] 离线角色添加、选择与本地保存
+- [x] 离线角色皮肤（Steve / Alex / 自定义）
 - [x] Java 运行时检测与打开安装目录
 - [x] 版本安装核心库（版本清单、依赖规则、并发下载、SHA-1 校验、natives 解压）
 - [x] 命令行安装器 `neutrino-install`（支持 `--list` / `--dry-run` / 镜像地址 / 线程数）
@@ -204,8 +207,10 @@ cargo run --bin neutrino-install -- 1.20.4 -d D:/mctest --no-assets --threads 16
 │   └── error.rs                 # 统一错误类型
 ├── src/bin/neutrino-install.rs  # 命令行安装器
 ├── src/desktop.rs               # 发现页控制器：版本列表 / 类别切换 / Modrinth 下载 / 安装线程编排（GUI 专用）
+├── src/accounts.rs              # 离线角色与皮肤保存、切换
+├── src/skins.rs                 # 自定义皮肤头像裁剪
 ├── src/java.rs                  # Java 运行时检测
-├── src/instances.rs             # versions 目录实例扫描
+├── src/instances.rs             # versions 目录实例扫描与模组 / 资源包 / 光影扫描
 ├── src/msa.rs                   # Microsoft 设备码登录
 ├── ui/app-window.slint          # 主窗口入口
 ├── ui/shell/                    # AppShell / TopBar / NavItem
