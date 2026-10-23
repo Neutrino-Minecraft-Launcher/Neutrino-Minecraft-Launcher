@@ -28,8 +28,8 @@ Neutrino Minecraft Launcher（中微子 Minecraft 启动器）的目标是提供
 - [x] Java 运行时检测与打开安装目录
 - [x] 版本安装核心库（版本清单、依赖规则、并发下载、SHA-1 校验、natives 解压）
 - [x] 命令行安装器 `neutrino-install`（支持 `--list` / `--dry-run` / 镜像地址 / 线程数）
-- [x] 安装功能接入 GUI（「发现」页：版本列表、筛选、安装进度、安装结果提示）
-- [x] 「发现」页五大类别：原版游戏 / 模组 / 光影包 / 材质包 / 整合包（后四类来自 Modrinth，支持一键下载到 `mods/`、`shaderpacks/`、`resourcepacks/`）
+- [x] 安装功能接入 GUI（「实例」页：版本列表、筛选、安装进度、安装结果提示）
+- [x] 「发现」页四类别：模组 / 光影包 / 材质包 / 整合包（来自 Modrinth，支持一键下载到 `mods/`、`shaderpacks/`、`resourcepacks/`）
 - [x] GitHub Actions CI（格式检查、Clippy、测试）
 - [x] 行为准则与安全策略
 - [x] Microsoft 设备码登录流程（需配置客户端 ID）
@@ -170,13 +170,14 @@ cargo run --bin neutrino-install -- 1.20.4 -d D:/mctest --no-assets --threads 16
 5. 已存在且校验通过的文件直接跳过，所以重复执行是幂等的，断点续传天然可用；
 6. 结束时对比该版本要求的 Java 大版本与本机检测结果，给出提示。
 
-## 发现页（GUI）
+## 实例页与发现页（GUI）
 
-「发现」页左侧分五个类别：
+「实例」页左侧底部有「添加实例」入口，点击后展示 Mojang 版本清单（支持正式版 / 快照 / 全部筛选、安装进度与结果提示），安装完成后版本会出现在实例列表里。
+
+「发现」页左侧分四个类别（均来自 Modrinth）：
 
 | 类别 | 数据来源 | 下载位置 |
 | --- | --- | --- |
-| 原版游戏 | Mojang 版本清单 | `versions/<id>/`（完整安装） |
 | 模组 | Modrinth（project_type = mod） | `mods/` |
 | 光影包 | Modrinth（project_type = shader） | `shaderpacks/` |
 | 材质包 | Modrinth（project_type = resourcepack） | `resourcepacks/` |

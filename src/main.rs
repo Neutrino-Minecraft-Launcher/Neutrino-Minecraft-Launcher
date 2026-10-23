@@ -148,8 +148,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             .on_download_project(move |id| controller.download_project(id.as_str()));
     }
 
-    // 启动时后台拉一次版本清单，进“发现”页就有内容
+    // 启动时后台拉一次版本清单，供“实例页 → 添加实例”使用
     controller.refresh_versions();
+
+    // 发现页默认展示模组列表，启动时也预取一次
+    controller.open_category("mod");
 
     ui.run()?;
 

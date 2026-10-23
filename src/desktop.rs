@@ -440,10 +440,7 @@ fn short_date(release_time: &str) -> String {
 }
 
 /// 取项目最新的正式版文件并下载到对应目录，返回落盘路径。
-fn download_latest_file(
-    project_id: &str,
-    kind: ContentKind,
-) -> std::result::Result<PathBuf, String> {
+fn download_latest_file(project_id: &str, kind: ContentKind) -> Result<PathBuf, String> {
     let downloader = Downloader::new(Progress::silent());
 
     let versions = modrinth::project_versions(&downloader, project_id)

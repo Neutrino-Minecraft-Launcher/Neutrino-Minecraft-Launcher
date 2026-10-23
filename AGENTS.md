@@ -30,7 +30,8 @@ are not implemented yet.
   (`Arc<Mutex<_>>` all the way down) instead of a `Weak` directly. UI callbacks
   (`on_install_version`, `on_filter_versions`, `on_open_category`, `on_download_project`, …) run on
   the UI thread and may touch `AppState` synchronously.
-- The discover page has five categories: `vanilla` (Mojang manifest) plus `mod` / `shader` /
+- The instances page's “添加实例” panel drives the Mojang version list (`refresh-versions` /
+  `filter-versions` / `install-version`); the discover page has four categories `mod` / `shader` /
   `resourcepack` / `modpack` (Modrinth, via `core/modrinth.rs`). Downloads land in `mods/`,
   `shaderpacks/`, `resourcepacks/`; modpack one-click install is intentionally not implemented yet.
   Only one install/download task may run at a time.
