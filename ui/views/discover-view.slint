@@ -4,426 +4,445 @@ import { Actions } from "../state/actions.slint";
 
 // 侧栏类别项，与实例页 / 账户页 / 设置页保持同一套视觉
 component CategoryItem inherits Rectangle {
-    in property <string> label;
-    in property <image> icon;
-    in property <bool> selected;
+  in property <string> label;
+  in property <image> icon;
+  in property <bool> selected;
 
-    callback clicked();
+  callback clicked();
 
-    height: 40px;
-    border-radius: 6px;
-    background: root.selected
-        ? Palette.accent-background.with-alpha(0.14)
-        : touch.has-hover
-            ? Palette.foreground.with-alpha(0.05)
-            : transparent;
+  height: 40px;
+  border-radius: 6px;
+  background: root.selected
+    ? Palette.accent-background.with-alpha(0.14)
+    : touch.has-hover
+      ? Palette.foreground.with-alpha(0.05)
+      : transparent;
 
-    HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 8px;
-        cross-axis-alignment: center;
+  HorizontalLayout {
+    padding-left: 12px;
+    padding-right: 12px;
+    spacing: 8px;
+    cross-axis-alignment: center;
 
-        Image {
-            source: root.icon;
-            width: 16px;
-            height: 16px;
-            colorize: Palette.foreground.with-alpha(0.72);
-        }
-
-        Text {
-            text: root.label;
-            color: Palette.foreground;
-            font-size: 13px;
-            font-weight: root.selected ? 600 : 400;
-            vertical-alignment: center;
-        }
+    Image {
+      source: root.icon;
+      width: 16px;
+      height: 16px;
+      colorize: Palette.foreground.with-alpha(0.72);
     }
 
-    touch := TouchArea {
-        mouse-cursor: pointer;
-        clicked => {
-            root.clicked();
-        }
+    Text {
+      text: root.label;
+      color: Palette.foreground;
+      font-size: 14px;
+      font-weight: root.selected ? 600 : 400;
+      vertical-alignment: center;
     }
+  }
+
+  touch := TouchArea {
+    mouse-cursor: pointer;
+    clicked => {
+      root.clicked();
+    }
+  }
 }
 
 // 模组 / 光影 / 材质 / 整合包行
 component ProjectRow inherits Rectangle {
-    in property <string> title;
-    in property <string> initial;
-    in property <string> subtitle;
-    in property <string> description;
-    in property <string> tag;
-    in property <string> action-label;
-    in property <bool> downloadable;
-    in property <bool> busy;
-    in property <bool> active;
+  in property <string> title;
+  in property <string> initial;
+  in property <image> icon;
+  in property <bool> has-icon;
+  in property <string> subtitle;
+  in property <string> description;
+  in property <string> tag;
+  in property <string> action-label;
+  in property <bool> downloadable;
+  in property <bool> busy;
+  in property <bool> active;
 
-    callback action();
+  callback action();
 
-    height: 78px;
-    background: transparent;
+  height: 96px;
+  background: transparent;
 
-    touch := TouchArea {
-        mouse-cursor: pointer;
-    }
+  touch := TouchArea {
+    mouse-cursor: pointer;
+  }
 
-    card := Rectangle {
-        x: 0;
-        y: 3px;
-        width: 100%;
-        height: 72px;
+  card := Rectangle {
+    x: 0;
+    y: 4px;
+    width: 100%;
+    height: 88px;
+    border-radius: 6px;
+    background: touch.has-hover
+      ? Palette.foreground.with-alpha(0.10)
+      : Palette.foreground.with-alpha(0.05);
+    border-width: 1px;
+    border-color: Palette.foreground.with-alpha(0.12);
+
+    HorizontalLayout {
+      padding-left: 12px;
+      padding-right: 8px;
+      spacing: 10px;
+      cross-axis-alignment: center;
+
+      // 项目图标；没有时回退到首字母头像
+      if root.has-icon : Rectangle {
+        width: 48px;
+        height: 48px;
         border-radius: 6px;
-        background: touch.has-hover
-            ? Palette.foreground.with-alpha(0.10)
-            : Palette.foreground.with-alpha(0.05);
-        border-width: 1px;
-        border-color: Palette.foreground.with-alpha(0.12);
+        clip: true;
+        background: Palette.accent-background.with-alpha(0.16);
+
+        Image {
+          source: root.icon;
+          width: 100%;
+          height: 100%;
+          image-fit: contain;
+        }
+      }
+
+      if !root.has-icon : Rectangle {
+        width: 48px;
+        height: 48px;
+        border-radius: 6px;
+        background: Palette.accent-background.with-alpha(0.16);
+
+        Text {
+          text: root.initial;
+          color: Palette.accent-background;
+          font-size: 20px;
+          font-weight: 700;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
+
+      VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 4px;
 
         HorizontalLayout {
-            padding-left: 12px;
-            padding-right: 8px;
-            spacing: 10px;
-            cross-axis-alignment: center;
+          spacing: 8px;
+          cross-axis-alignment: center;
 
-            // 首字母头像
-            Rectangle {
-                width: 36px;
-                height: 36px;
-                border-radius: 6px;
-                background: Palette.accent-background.with-alpha(0.16);
+          Text {
+            text: root.title;
+            color: Palette.foreground;
+            font-size: 15px;
+            font-weight: 600;
+            overflow: elide;
+          }
 
-                Text {
-                    text: root.initial;
-                    color: Palette.accent-background;
-                    font-size: 16px;
-                    font-weight: 700;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
-
-            VerticalLayout {
-                horizontal-stretch: 1;
-                alignment: center;
-                spacing: 3px;
-
-                HorizontalLayout {
-                    spacing: 8px;
-                    cross-axis-alignment: center;
-
-                    Text {
-                        text: root.title;
-                        color: Palette.foreground;
-                        font-size: 13px;
-                        font-weight: 600;
-                        overflow: elide;
-                    }
-
-                    if root.tag != "" : Text {
-                        text: root.tag;
-                        color: Palette.foreground.with-alpha(0.45);
-                        font-size: 11px;
-                        vertical-alignment: center;
-                    }
-                }
-
-                Text {
-                    text: root.description;
-                    color: Palette.foreground.with-alpha(0.62);
-                    font-size: 11px;
-                    overflow: elide;
-                }
-
-                Text {
-                    text: root.subtitle;
-                    color: Palette.foreground.with-alpha(0.42);
-                    font-size: 11px;
-                    overflow: elide;
-                }
-            }
-
-            Rectangle {
-                height: 30px;
-                min-width: 78px;
-                horizontal-stretch: 0;
-                border-radius: 6px;
-                opacity: !root.downloadable || (root.busy && !root.active) ? 0.4 : 1.0;
-                border-width: 1px;
-                border-color: Palette.accent-background.with-alpha(0.55);
-                background: action-touch.has-hover && root.downloadable && !root.busy
-                    ? Palette.accent-background.with-alpha(0.30)
-                    : Palette.accent-background.with-alpha(0.18);
-
-                HorizontalLayout {
-                    padding-left: 12px;
-                    padding-right: 12px;
-                    alignment: center;
-                    cross-axis-alignment: center;
-
-                    Text {
-                        text: root.active ? "下载中…" : root.action-label;
-                        color: Palette.accent-background;
-                        font-size: 12px;
-                        font-weight: 600;
-                        vertical-alignment: center;
-                    }
-                }
-
-                action-touch := TouchArea {
-                    mouse-cursor: pointer;
-                    clicked => {
-                        if (root.downloadable && !root.busy) {
-                            root.action();
-                        }
-                    }
-                }
-            }
+          if root.tag != "" : Text {
+            text: root.tag;
+            color: Palette.foreground.with-alpha(0.45);
+            font-size: 12px;
+            vertical-alignment: center;
+          }
         }
+
+        Text {
+          text: root.description;
+          color: Palette.foreground.with-alpha(0.62);
+          font-size: 12px;
+          overflow: elide;
+        }
+
+        Text {
+          text: root.subtitle;
+          color: Palette.foreground.with-alpha(0.42);
+          font-size: 12px;
+          overflow: elide;
+        }
+      }
+
+      Rectangle {
+        height: 32px;
+        min-width: 84px;
+        horizontal-stretch: 0;
+        border-radius: 6px;
+        opacity: !root.downloadable || (root.busy && !root.active) ? 0.4 : 1.0;
+        border-width: 1px;
+        border-color: Palette.accent-background.with-alpha(0.55);
+        background: action-touch.has-hover && root.downloadable && !root.busy
+          ? Palette.accent-background.with-alpha(0.30)
+          : Palette.accent-background.with-alpha(0.18);
+
+        HorizontalLayout {
+          padding-left: 12px;
+          padding-right: 12px;
+          alignment: center;
+          cross-axis-alignment: center;
+
+          Text {
+            text: root.active ? "下载中…" : root.action-label;
+            color: Palette.accent-background;
+            font-size: 13px;
+            font-weight: 600;
+            vertical-alignment: center;
+          }
+        }
+
+        action-touch := TouchArea {
+          mouse-cursor: pointer;
+          clicked => {
+            if (root.downloadable && !root.busy) {
+              root.action();
+            }
+          }
+        }
+      }
     }
+  }
 }
 
 // 提示条
 component MessageStrip inherits Rectangle {
-    in property <string> message;
-    in property <bool> ok;
+  in property <string> message;
+  in property <bool> ok;
 
-    height: 40px;
-    border-radius: 6px;
-    background: root.ok ? Palette.accent-background.with-alpha(0.10) : #fee2e2;
-    border-width: 1px;
-    border-color: root.ok ? Palette.accent-background.with-alpha(0.30) : #fecaca;
+  height: 40px;
+  border-radius: 6px;
+  background: root.ok ? Palette.accent-background.with-alpha(0.10) : #fee2e2;
+  border-width: 1px;
+  border-color: root.ok ? Palette.accent-background.with-alpha(0.30) : #fecaca;
 
-    HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        cross-axis-alignment: center;
+  HorizontalLayout {
+    padding-left: 12px;
+    padding-right: 12px;
+    cross-axis-alignment: center;
 
-        Text {
-            text: root.message;
-            color: root.ok ? Palette.foreground : #991b1b;
-            font-size: 12px;
-            vertical-alignment: center;
-            overflow: elide;
-        }
+    Text {
+      text: root.message;
+      color: root.ok ? Palette.foreground : #991b1b;
+      font-size: 12px;
+      vertical-alignment: center;
+      overflow: elide;
     }
+  }
 }
 
 export component DiscoverView inherits Rectangle {
-    background: transparent;
+  background: transparent;
 
-    function category-title() -> string {
-        if (AppState.category == "mod") {
-            return "模组";
+  function category-title() -> string {
+    if (AppState.category == "mod") {
+      return "模组";
+    }
+    if (AppState.category == "shader") {
+      return "光影包";
+    }
+    if (AppState.category == "resourcepack") {
+      return "材质包";
+    }
+    return "整合包";
+  }
+
+  function category-subtitle() -> string {
+    if (AppState.category == "mod") {
+      return "来自 Modrinth 的热门模组，下载到 mods/ 目录（需先装好 Fabric / Forge 等加载器）";
+    }
+    if (AppState.category == "shader") {
+      return "光影包会下载到 shaderpacks/ 目录，游戏内需配合 Iris 或 OptiFine 使用";
+    }
+    if (AppState.category == "resourcepack") {
+      return "材质包会下载到 resourcepacks/ 目录";
+    }
+    return "整合包列表来自 Modrinth，一键安装仍在开发中";
+  }
+
+  HorizontalLayout {
+    padding: 16px;
+    spacing: 16px;
+
+    // 左侧类别
+    VerticalLayout {
+      width: 200px;
+      horizontal-stretch: 0;
+      padding-top: 8px;
+      padding-bottom: 8px;
+      spacing: 4px;
+
+      CategoryItem {
+        label: "模组";
+        icon: @image-url("../images/icons/puzzle.svg");
+        selected: AppState.category == "mod";
+        clicked => {
+          Actions.open-category("mod");
         }
-        if (AppState.category == "shader") {
-            return "光影包";
+      }
+
+      CategoryItem {
+        label: "光影包";
+        icon: @image-url("../images/icons/shader.svg");
+        selected: AppState.category == "shader";
+        clicked => {
+          Actions.open-category("shader");
         }
-        if (AppState.category == "resourcepack") {
-            return "材质包";
+      }
+
+      CategoryItem {
+        label: "材质包";
+        icon: @image-url("../images/icons/images.svg");
+        selected: AppState.category == "resourcepack";
+        clicked => {
+          Actions.open-category("resourcepack");
         }
-        return "整合包";
+      }
+
+      CategoryItem {
+        label: "整合包";
+        icon: @image-url("../images/icons/boxes.svg");
+        selected: AppState.category == "modpack";
+        clicked => {
+          Actions.open-category("modpack");
+        }
+      }
+
+      Rectangle {
+        vertical-stretch: 1;
+      }
+
+      if AppState.projects-summary != "" : Text {
+        text: AppState.projects-summary;
+        color: Palette.foreground.with-alpha(0.45);
+        font-size: 11px;
+        wrap: word-wrap;
+      }
     }
 
-    function category-subtitle() -> string {
-        if (AppState.category == "mod") {
-            return "来自 Modrinth 的热门模组，下载到 mods/ 目录（需先装好 Fabric / Forge 等加载器）";
-        }
-        if (AppState.category == "shader") {
-            return "光影包会下载到 shaderpacks/ 目录，游戏内需配合 Iris 或 OptiFine 使用";
-        }
-        if (AppState.category == "resourcepack") {
-            return "材质包会下载到 resourcepacks/ 目录";
-        }
-        return "整合包列表来自 Modrinth，一键安装仍在开发中";
-    }
+    // 右侧内容
+    VerticalLayout {
+      spacing: 10px;
+      padding: 16px;
 
-    HorizontalLayout {
-        padding: 16px;
-        spacing: 16px;
+      HorizontalLayout {
+        spacing: 10px;
+        cross-axis-alignment: center;
 
-        // 左侧类别
         VerticalLayout {
-            width: 200px;
-            horizontal-stretch: 0;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            spacing: 4px;
+          horizontal-stretch: 1;
+          alignment: center;
+          spacing: 2px;
 
-            CategoryItem {
-                label: "模组";
-                icon: @image-url("../images/icons/puzzle.svg");
-                selected: AppState.category == "mod";
-                clicked => {
-                    Actions.open-category("mod");
-                }
-            }
+          Text {
+            text: root.category-title();
+            color: Palette.foreground;
+            font-size: 20px;
+            font-weight: 600;
+          }
 
-            CategoryItem {
-                label: "光影包";
-                icon: @image-url("../images/icons/shader.svg");
-                selected: AppState.category == "shader";
-                clicked => {
-                    Actions.open-category("shader");
-                }
-            }
-
-            CategoryItem {
-                label: "材质包";
-                icon: @image-url("../images/icons/images.svg");
-                selected: AppState.category == "resourcepack";
-                clicked => {
-                    Actions.open-category("resourcepack");
-                }
-            }
-
-            CategoryItem {
-                label: "整合包";
-                icon: @image-url("../images/icons/boxes.svg");
-                selected: AppState.category == "modpack";
-                clicked => {
-                    Actions.open-category("modpack");
-                }
-            }
-
-            Rectangle {
-                vertical-stretch: 1;
-            }
-
-            if AppState.projects-summary != "" : Text {
-                text: AppState.projects-summary;
-                color: Palette.foreground.with-alpha(0.45);
-                font-size: 11px;
-                wrap: word-wrap;
-            }
+          Text {
+            text: root.category-subtitle();
+            color: Palette.foreground.with-alpha(0.65);
+            font-size: 14px;
+            overflow: elide;
+          }
         }
 
-        // 右侧内容
-        VerticalLayout {
-            spacing: 10px;
-            padding: 16px;
+        // 刷新按钮
+        Rectangle {
+          height: 32px;
+          min-width: 84px;
+          horizontal-stretch: 0;
+          border-radius: 6px;
+          opacity: AppState.projects-loading ? 0.5 : 1.0;
+          background: refresh-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
 
-            HorizontalLayout {
-                spacing: 10px;
-                cross-axis-alignment: center;
+          HorizontalLayout {
+            padding-left: 10px;
+            padding-right: 12px;
+            spacing: 6px;
+            alignment: center;
+            cross-axis-alignment: center;
 
-                VerticalLayout {
-                    horizontal-stretch: 1;
-                    alignment: center;
-                    spacing: 2px;
-
-                    Text {
-                        text: root.category-title();
-                        color: Palette.foreground;
-                        font-size: 18px;
-                        font-weight: 600;
-                    }
-
-                    Text {
-                        text: root.category-subtitle();
-                        color: Palette.foreground.with-alpha(0.65);
-                        font-size: 13px;
-                        overflow: elide;
-                    }
-                }
-
-                // 刷新按钮
-                Rectangle {
-                    height: 32px;
-                    min-width: 84px;
-                    horizontal-stretch: 0;
-                    border-radius: 6px;
-                    opacity: AppState.projects-loading ? 0.5 : 1.0;
-                    background: refresh-touch.has-hover ? Palette.foreground.with-alpha(0.06) : transparent;
-
-                    HorizontalLayout {
-                        padding-left: 10px;
-                        padding-right: 12px;
-                        spacing: 6px;
-                        alignment: center;
-                        cross-axis-alignment: center;
-
-                        Image {
-                            source: @image-url("../images/icons/arrow-repeat.svg");
-                            width: 16px;
-                            height: 16px;
-                            colorize: Palette.foreground.with-alpha(0.72);
-                        }
-
-                        Text {
-                            text: AppState.projects-loading ? "获取中…" : "刷新";
-                            color: Palette.foreground;
-                            font-size: 12px;
-                            vertical-alignment: center;
-                        }
-                    }
-
-                    refresh-touch := TouchArea {
-                        mouse-cursor: pointer;
-                        clicked => {
-                            if (!AppState.projects-loading) {
-                                Actions.open-category(AppState.category);
-                            }
-                        }
-                    }
-                }
+            Image {
+              source: @image-url("../images/icons/arrow-repeat.svg");
+              width: 16px;
+              height: 16px;
+              colorize: Palette.foreground.with-alpha(0.72);
             }
 
-            if AppState.download-message != "" : MessageStrip {
-                message: AppState.download-message;
-                ok: AppState.download-ok;
+            Text {
+              text: AppState.projects-loading ? "获取中…" : "刷新";
+              color: Palette.foreground;
+              font-size: 12px;
+              vertical-alignment: center;
             }
+          }
 
-            if AppState.projects-error != "" : MessageStrip {
-                message: AppState.projects-error;
-                ok: false;
+          refresh-touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+              if (!AppState.projects-loading) {
+                Actions.open-category(AppState.category);
+              }
             }
-
-            Rectangle {
-                vertical-stretch: 1;
-                border-radius: 6px;
-                background: Palette.background.with-alpha(0.5);
-                border-width: 1px;
-                border-color: Palette.foreground.with-alpha(0.08);
-                clip: true;
-
-                ListView {
-                    x: 0;
-                    y: 0;
-                    width: 100%;
-                    height: 100%;
-
-                    for project in AppState.projects : ProjectRow {
-                        title: project.title;
-                        initial: project.initial;
-                        subtitle: project.subtitle;
-                        description: project.description;
-                        tag: project.tag;
-                        action-label: project.action-label;
-                        downloadable: project.downloadable;
-                        busy: AppState.downloading-project != "";
-                        active: AppState.downloading-project == project.project-id;
-                        action => {
-                            Actions.download-project(project.project-id);
-                        }
-                    }
-                }
-
-                if AppState.projects.length == 0 : Text {
-                    x: 0;
-                    y: 0;
-                    width: 100%;
-                    height: 100%;
-                    text: AppState.projects-loading
-                        ? "正在从 Modrinth 获取列表…"
-                        : "没有获取到项目，点右上角刷新试试";
-                    color: Palette.foreground.with-alpha(0.45);
-                    font-size: 13px;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
+          }
         }
+      }
+
+      if AppState.download-message != "" : MessageStrip {
+        message: AppState.download-message;
+        ok: AppState.download-ok;
+      }
+
+      if AppState.projects-error != "" : MessageStrip {
+        message: AppState.projects-error;
+        ok: false;
+      }
+
+      Rectangle {
+        vertical-stretch: 1;
+        border-radius: 6px;
+        background: Palette.background.with-alpha(0.5);
+        border-width: 1px;
+        border-color: Palette.foreground.with-alpha(0.08);
+        clip: true;
+
+        ListView {
+          x: 0;
+          y: 0;
+          width: 100%;
+          height: 100%;
+
+          for project in AppState.projects : ProjectRow {
+            title: project.title;
+            initial: project.initial;
+            icon: project.icon;
+            has-icon: project.has-icon;
+            subtitle: project.subtitle;
+            description: project.description;
+            tag: project.tag;
+            action-label: project.action-label;
+            downloadable: project.downloadable;
+            busy: AppState.downloading-project != "";
+            active: AppState.downloading-project == project.project-id;
+            action => {
+              Actions.download-project(project.project-id);
+            }
+          }
+        }
+
+        if AppState.projects.length == 0 : Text {
+          x: 0;
+          y: 0;
+          width: 100%;
+          height: 100%;
+          text: AppState.projects-loading
+            ? "正在从 Modrinth 获取列表…"
+            : "没有获取到项目，点右上角刷新试试";
+          color: Palette.foreground.with-alpha(0.45);
+          font-size: 13px;
+          horizontal-alignment: center;
+          vertical-alignment: center;
+        }
+      }
     }
+  }
 }

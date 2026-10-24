@@ -7,10 +7,11 @@
 
 use std::collections::HashSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 use super::error::{CoreError, Result, io_err};
+use super::loader::{self, LoaderKind};
 use super::manifest::{
     AssetIndex, AssetIndexRef, MavenCoordinate, VersionJson, VersionManifest, maven_url,
     natives_classifier, rules_allow,
@@ -111,7 +112,7 @@ impl InstallReport {
     }
 }
 
-/// 执行安装。
+/// 执行安装（原版，写到 `versions/<version>/`）。
 pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallReport> {
     let started = Instant::now();
     let paths = GamePaths::new(&options.game_dir);
@@ -129,21 +130,205 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
     // 2. 版本 JSON（支持 inheritsFrom 继承链）
     progress.begin_stage("获取版本信息", 0);
     let fetched = resolve_version(&downloader, &manifest, &summary.url, 0)?;
-    let version = fetched.json;
     progress.finish_stage();
 
+    install_resolved(
+        &paths,
+        &options.version,
+        &fetched.json,
+        &fetched.raw,
+        &downloader,
+        options,
+        progress,
+        started,
+    )
+}
+
+/// 实例安装参数（GUI 的“添加实例”流程）。
+#[derive(Debug, Clone)]
+pub struct InstanceInstallOptions {
+    pub game_dir: PathBuf,
+    /// 实例名，也是 `versions/<instance>/` 的目录名。
+    pub instance: String,
+    /// 原版版本 id（例如 `1.20.4`）。
+    pub version: String,
+    /// 模组加载器；`None` 表示原版。
+    pub loader: Option<LoaderKind>,
+    /// 加载器版本（Fabric / Forge），跳过加载器时忽略。
+    pub loader_version: Option<String>,
+    /// 是否下载资源文件（assets）。
+    pub assets: bool,
+    pub threads: usize,
+    pub retries: u32,
+}
+
+impl InstanceInstallOptions {
+    pub fn new(
+        game_dir: impl Into<PathBuf>,
+        instance: impl Into<String>,
+        version: impl Into<String>,
+    ) -> Self {
+        Self {
+            game_dir: game_dir.into(),
+            instance: instance.into(),
+            version: version.into(),
+            loader: None,
+            loader_version: None,
+            assets: true,
+            threads: 8,
+            retries: 3,
+        }
+    }
+
+    fn install_options(&self) -> InstallOptions {
+        let mut options = InstallOptions::new(&self.game_dir, &self.version);
+        options.assets = self.assets;
+        options.threads = self.threads;
+        options.retries = self.retries;
+        options
+    }
+}
+
+/// 创建一个自包含的实例：`versions/<instance>/` 里放合并后的版本 JSON 和客户端 jar。
+pub fn install_instance(
+    options: &InstanceInstallOptions,
+    progress: &Progress,
+) -> Result<InstallReport> {
+    let started = Instant::now();
+    let paths = GamePaths::new(&options.game_dir);
+    let downloader = Downloader::new(progress.clone()).with_retries(options.retries);
+    let install_options = options.install_options();
+
+    // 1. 原版版本 JSON
+    progress.begin_stage("获取版本清单", 0);
+    let manifest: VersionManifest =
+        downloader.get_json(&install_options.manifest_url, "版本清单")?;
+    let summary = manifest
+        .find(&options.version)
+        .cloned()
+        .ok_or_else(|| CoreError::UnknownVersion(options.version.clone()))?;
+    progress.finish_stage();
+
+    progress.begin_stage("获取版本信息", 0);
+    let vanilla = resolve_version(&downloader, &manifest, &summary.url, 0)?;
+    progress.finish_stage();
+
+    // 2. 加载器
+    let loader_raw = match options.loader {
+        None => None,
+        Some(LoaderKind::Fabric) => {
+            let version = options
+                .loader_version
+                .as_deref()
+                .ok_or_else(|| CoreError::Other("没有选择 Fabric 版本".to_string()))?;
+            progress.begin_stage("获取 Fabric 配置", 0);
+            let raw = loader::fabric_profile(&downloader, &options.version, version)?;
+            progress.finish_stage();
+            Some(raw)
+        }
+        Some(LoaderKind::Forge) => {
+            let version = options
+                .loader_version
+                .as_deref()
+                .ok_or_else(|| CoreError::Other("没有选择 Forge 版本".to_string()))?;
+            let java = crate::java::detect_java()
+                .map(|info| info.executable())
+                .ok_or_else(|| {
+                    CoreError::Other("未检测到 Java，无法运行 Forge 安装器".to_string())
+                })?;
+
+            // Forge 安装器要求原版版本目录存在；装完再决定是否清掉。
+            // 这里只装客户端和依赖库，assets 留到实例阶段再下，避免重复等待。
+            let base_dir_existed = paths.version_dir(&options.version).exists();
+            let mut base_options = install_options.clone();
+            base_options.assets = false;
+            install_resolved(
+                &paths,
+                &options.version,
+                &vanilla.json,
+                &vanilla.raw,
+                &downloader,
+                &base_options,
+                progress,
+                started,
+            )?;
+
+            // 原版客户端 jar 已经在缓存里，复制到实例目录，避免重复下载。
+            copy_file_if_missing(
+                &paths.client_jar(&options.version),
+                &paths.client_jar(&options.instance),
+            );
+
+            progress.begin_stage("运行 Forge 安装器", 0);
+            let forge = loader::install_forge(
+                &downloader,
+                &options.game_dir,
+                &options.version,
+                version,
+                &java,
+            );
+            // 即使安装器失败，也把临时原版目录清掉（重试时会重新装）。
+            if !base_dir_existed {
+                let _ = fs::remove_dir_all(paths.version_dir(&options.version));
+            }
+            progress.finish_stage();
+            let forge = forge?;
+
+            // 只清理本次安装器新建的临时版本目录，别误删用户已有的 Forge 版本。
+            if forge.created {
+                loader::cleanup_generated(&options.game_dir, &forge.id, &options.version);
+            }
+
+            Some(forge.raw)
+        }
+    };
+
+    // 3. 合并成自包含版本 JSON（去掉 inheritsFrom，id 改成实例名）
+    let merged_raw = merge_instance_json(&vanilla.raw, loader_raw.as_deref(), &options.instance)?;
+    let merged: VersionJson =
+        serde_json::from_slice(&merged_raw).map_err(|source| CoreError::Json {
+            context: "合并后的版本 JSON".to_string(),
+            source,
+        })?;
+
+    // 4. 下载依赖库、资源并落盘
+    let report = install_resolved(
+        &paths,
+        &options.instance,
+        &merged,
+        &merged_raw,
+        &downloader,
+        &install_options,
+        progress,
+        started,
+    )?;
+
+    // 5. 补齐实例常用的游戏目录（版本隔离后，游戏会直接读写这里）
+    if !install_options.dry_run {
+        create_instance_layout(&paths, &options.instance);
+    }
+
+    Ok(report)
+}
+
+/// 把已解析的版本 JSON 安装到 `versions/<target_id>/`。
+#[allow(clippy::too_many_arguments)]
+fn install_resolved(
+    paths: &GamePaths,
+    target_id: &str,
+    version: &VersionJson,
+    raw: &[u8],
+    downloader: &Downloader,
+    options: &InstallOptions,
+    progress: &Progress,
+    started: Instant,
+) -> Result<InstallReport> {
     if version.main_class.is_empty() {
         return Err(CoreError::MissingField("mainClass"));
     }
 
-    // 3. 落盘版本 JSON（原样保存，便于以后启动时复读）
-    let version_dir = paths.version_dir(&options.version);
-    let version_json_path = paths.version_json(&options.version);
-    if !options.dry_run {
-        fs::create_dir_all(&version_dir).map_err(|err| io_err(&version_dir, err))?;
-        fs::write(&version_json_path, &fetched.raw)
-            .map_err(|err| io_err(&version_json_path, err))?;
-    }
+    let version_dir = paths.version_dir(target_id);
+    let version_json_path = paths.version_json(target_id);
 
     // 4. 客户端 jar
     let client_size = version
@@ -156,7 +341,7 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
 
     let mut client_jar = None;
     if let Some(client) = &version.downloads.client {
-        let dest = paths.client_jar(&options.version);
+        let dest = paths.client_jar(target_id);
         if !options.dry_run {
             downloader.download(
                 &client.url,
@@ -173,8 +358,8 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
     let mut library_jobs = Vec::new();
     let mut native_jars = Vec::new();
     collect_library_jobs(
-        &paths,
-        &version,
+        paths,
+        version,
         &options.libraries_base,
         &mut library_jobs,
         &mut native_jars,
@@ -200,7 +385,7 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
             .sum();
         progress.begin_stage("解压 natives", natives_bytes);
 
-        let natives_dir = paths.natives_dir(&options.version);
+        let natives_dir = paths.natives_dir(target_id);
         for (jar, excludes) in &native_jars {
             let size = jar.metadata().map(|meta| meta.len()).unwrap_or(0);
             if !options.dry_run && jar.is_file() {
@@ -218,10 +403,10 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
         && let Some(index_ref) = &version.asset_index
     {
         progress.begin_stage("下载资源索引", 0);
-        let index = load_asset_index(&downloader, &paths, index_ref, options.dry_run)?;
+        let index = load_asset_index(downloader, paths, index_ref, options.dry_run)?;
         progress.finish_stage();
 
-        let asset_jobs = build_asset_jobs(&paths, &index, &options.resources_base);
+        let asset_jobs = build_asset_jobs(paths, &index, &options.resources_base);
         asset_count = asset_jobs.len();
         asset_bytes = DownloadJob::total_size(&asset_jobs);
 
@@ -235,8 +420,14 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
             && (index.virtual_assets || index.map_to_resources)
             && !options.dry_run
         {
-            copy_virtual_assets(&paths, &index, &index_ref.id, progress)?;
+            copy_virtual_assets(paths, &index, &index_ref.id, progress)?;
         }
+    }
+
+    // 最后写版本 JSON：中途失败时不会留下一个“看起来已安装”的目录。
+    if !options.dry_run {
+        fs::create_dir_all(&version_dir).map_err(|err| io_err(&version_dir, err))?;
+        fs::write(&version_json_path, raw).map_err(|err| io_err(&version_json_path, err))?;
     }
 
     let java_required = version
@@ -247,11 +438,11 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
     let java_detected = crate::java::detect_java().map(|info| info.major);
 
     Ok(InstallReport {
-        version: options.version.clone(),
+        version: target_id.to_string(),
         game_dir: paths.root().to_path_buf(),
         version_dir,
         client_jar,
-        main_class: version.main_class,
+        main_class: version.main_class.clone(),
         library_count: library_jobs.len(),
         native_library_count: native_jars.len(),
         native_file_count,
@@ -264,6 +455,130 @@ pub fn install(options: &InstallOptions, progress: &Progress) -> Result<InstallR
         elapsed: started.elapsed(),
         dry_run: options.dry_run,
     })
+}
+
+/// 复制文件（目标已存在或源不存在时跳过）。
+fn copy_file_if_missing(source: &Path, dest: &Path) {
+    if dest.is_file() || !source.is_file() {
+        return;
+    }
+    if let Some(parent) = dest.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    let _ = fs::copy(source, dest);
+}
+
+/// 建好实例自己的游戏目录。启动时 `--gameDir` 和工作目录都指向这里，
+/// 所以存档、配置、模组、资源包都是按实例隔离的。
+fn create_instance_layout(paths: &GamePaths, instance: &str) {
+    let dir = paths.version_dir(instance);
+    for sub in [
+        "mods",
+        "resourcepacks",
+        "shaderpacks",
+        "saves",
+        "config",
+        "logs",
+    ] {
+        let _ = fs::create_dir_all(dir.join(sub));
+    }
+}
+
+/// 把原版 JSON 和加载器 profile 合并成自包含实例 JSON。
+fn merge_instance_json(
+    vanilla_raw: &[u8],
+    loader_raw: Option<&[u8]>,
+    instance: &str,
+) -> Result<Vec<u8>> {
+    let mut merged: serde_json::Value =
+        serde_json::from_slice(vanilla_raw).map_err(|source| CoreError::Json {
+            context: "原版版本 JSON".to_string(),
+            source,
+        })?;
+
+    if let Some(raw) = loader_raw {
+        let loader: serde_json::Value =
+            serde_json::from_slice(raw).map_err(|source| CoreError::Json {
+                context: "加载器版本 JSON".to_string(),
+                source,
+            })?;
+        merge_profile(&mut merged, &loader);
+    }
+
+    if let Some(object) = merged.as_object_mut() {
+        object.insert(
+            "id".to_string(),
+            serde_json::Value::String(instance.to_string()),
+        );
+        object.remove("inheritsFrom");
+    }
+
+    serde_json::to_vec_pretty(&merged).map_err(|source| CoreError::Json {
+        context: "合并后的版本 JSON".to_string(),
+        source,
+    })
+}
+
+/// 把加载器 profile 合并到原版 JSON 上（原版在前、加载器在后）。
+fn merge_profile(parent: &mut serde_json::Value, child: &serde_json::Value) {
+    let (Some(parent), Some(child)) = (parent.as_object_mut(), child.as_object()) else {
+        return;
+    };
+
+    // libraries：原版在前，加载器在后（classpath 里后出现的优先）。
+    if let Some(child_libraries) = child.get("libraries").and_then(|value| value.as_array()) {
+        let libraries = parent
+            .entry("libraries")
+            .or_insert_with(|| serde_json::Value::Array(Vec::new()));
+        if let Some(libraries) = libraries.as_array_mut() {
+            libraries.extend(child_libraries.iter().cloned());
+        }
+    }
+
+    // arguments：jvm / game 分别拼接。
+    if let Some(child_arguments) = child.get("arguments").and_then(|value| value.as_object()) {
+        let arguments = parent
+            .entry("arguments")
+            .or_insert_with(|| serde_json::Value::Object(Default::default()));
+        if let Some(arguments) = arguments.as_object_mut() {
+            for key in ["jvm", "game"] {
+                if let Some(values) = child_arguments.get(key).and_then(|value| value.as_array()) {
+                    let target = arguments
+                        .entry(key)
+                        .or_insert_with(|| serde_json::Value::Array(Vec::new()));
+                    if let Some(target) = target.as_array_mut() {
+                        target.extend(values.iter().cloned());
+                    }
+                }
+            }
+        }
+    }
+
+    // downloads：浅合并，保留原版的 client。
+    if let Some(child_downloads) = child.get("downloads").and_then(|value| value.as_object()) {
+        let downloads = parent
+            .entry("downloads")
+            .or_insert_with(|| serde_json::Value::Object(Default::default()));
+        if let Some(downloads) = downloads.as_object_mut() {
+            for (key, value) in child_downloads {
+                downloads.insert(key.clone(), value.clone());
+            }
+        }
+    }
+
+    // 其余字段：加载器有值就覆盖；空字符串和 null 不覆盖。
+    for (key, value) in child {
+        if matches!(
+            key.as_str(),
+            "id" | "inheritsFrom" | "libraries" | "arguments" | "downloads"
+        ) {
+            continue;
+        }
+        if value.is_null() || value.as_str().is_some_and(str::is_empty) {
+            continue;
+        }
+        parent.insert(key.clone(), value.clone());
+    }
 }
 
 /// 已下载但未合并的版本 JSON。
@@ -746,5 +1061,54 @@ mod tests {
         assert_eq!(report.java_ok(), Some(false));
         report.java_detected = None;
         assert_eq!(report.java_ok(), None);
+    }
+
+    #[test]
+    fn merges_loader_profile_into_self_contained_instance() {
+        let vanilla = br#"{
+          "id": "1.20.1",
+          "mainClass": "net.minecraft.client.main.Main",
+          "libraries": [{"name": "vanilla:lib:1"}],
+          "downloads": {"client": {"url": "https://x/client.jar", "sha1": "abc", "size": 1}},
+          "assets": "5",
+          "arguments": {
+            "jvm": ["-cp", "${classpath}"],
+            "game": ["--username", "${auth_player_name}"]
+          }
+        }"#;
+        let loader = br#"{
+          "id": "fabric-loader-0.16.9-1.20.1",
+          "inheritsFrom": "1.20.1",
+          "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+          "libraries": [{"name": "fabric:loader:0.16.9"}],
+          "downloads": {},
+          "arguments": {"jvm": ["-DFabricMcEmu= net.minecraft.client.main.Main "], "game": []}
+        }"#;
+
+        let merged = merge_instance_json(vanilla, Some(loader), "my-instance").unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+
+        assert_eq!(value["id"], "my-instance");
+        assert!(value.get("inheritsFrom").is_none());
+        assert_eq!(
+            value["mainClass"],
+            "net.fabricmc.loader.impl.launch.knot.KnotClient"
+        );
+        assert_eq!(value["libraries"].as_array().unwrap().len(), 2);
+        assert_eq!(value["arguments"]["jvm"].as_array().unwrap().len(), 3);
+        assert_eq!(value["arguments"]["game"].as_array().unwrap().len(), 2);
+        // 空的 downloads 不能把原版的 client 覆盖掉
+        assert_eq!(value["downloads"]["client"]["sha1"], "abc");
+        assert_eq!(value["assets"], "5");
+    }
+
+    #[test]
+    fn vanilla_instance_renames_id_without_loader() {
+        let vanilla = br#"{"id": "1.20.1", "mainClass": "a.B", "inheritsFrom": "1.20"}"#;
+        let merged = merge_instance_json(vanilla, None, "my-vanilla").unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&merged).unwrap();
+
+        assert_eq!(value["id"], "my-vanilla");
+        assert!(value.get("inheritsFrom").is_none());
     }
 }

@@ -8,96 +8,96 @@ import { DiscoverView } from "../views/discover-view.slint";
 import { SettingsView } from "../views/settings-view.slint";
 
 export component AppShell inherits Rectangle {
-    in-out property <Page> current-page: Page.launch;
-    in property <image> wallpaper: @image-url("../images/backgrounds/Jokull.jpg");
+  in-out property <Page> current-page: Page.launch;
+  in property <image> wallpaper: @image-url("../images/backgrounds/Jokull.jpg");
 
-    callback navigate(Page);
+  callback navigate(Page);
 
-    background: #0f1115;
+  background: #0f1115;
 
-    Image {
-        source: root.wallpaper;
-        width: 100%;
-        height: 100%;
-        image-fit: cover;
-        accessible-role: none;
+  Image {
+    source: root.wallpaper;
+    width: 100%;
+    height: 100%;
+    image-fit: cover;
+    accessible-role: none;
+  }
+
+  Rectangle {
+    width: 100%;
+    height: 100%;
+    background: @linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.5) 100%);
+  }
+
+  VerticalLayout {
+    TopBar {
+      current-page: root.current-page;
+
+      navigate(page) => {
+        root.current-page = page;
+        root.navigate(page);
+      }
     }
 
     Rectangle {
+      vertical-stretch: 1;
+
+      LaunchView {
+        x: 0;
+        y: 0;
         width: 100%;
         height: 100%;
-        background: @linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.5) 100%);
-    }
+        visible: root.current-page == Page.launch;
+      }
 
-    VerticalLayout {
-        TopBar {
-            current-page: root.current-page;
-
-            navigate(page) => {
-                root.current-page = page;
-                root.navigate(page);
-            }
-        }
+      HorizontalLayout {
+        visible: root.current-page != Page.launch;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 16px;
 
         Rectangle {
-            vertical-stretch: 1;
+          horizontal-stretch: 1;
+          vertical-stretch: 1;
+          border-radius: 6px;
+          background: Palette.background.with-alpha(0.9);
+          border-width: 1px;
+          border-color: Palette.foreground.with-alpha(0.08);
+          clip: true;
 
-            LaunchView {
-                x: 0;
-                y: 0;
-                width: 100%;
-                height: 100%;
-                visible: root.current-page == Page.launch;
-            }
+          InstancesView {
+            x: 0;
+            y: 0;
+            width: 100%;
+            height: 100%;
+            visible: root.current-page == Page.instances;
+          }
 
-            HorizontalLayout {
-                visible: root.current-page != Page.launch;
-                padding-left: 16px;
-                padding-right: 16px;
-                padding-bottom: 16px;
+          AccountView {
+            x: 0;
+            y: 0;
+            width: 100%;
+            height: 100%;
+            visible: root.current-page == Page.account;
+          }
 
-                Rectangle {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    border-radius: 6px;
-                    background: Palette.background.with-alpha(0.78);
-                    border-width: 1px;
-                    border-color: Palette.foreground.with-alpha(0.08);
-                    clip: true;
+          DiscoverView {
+            x: 0;
+            y: 0;
+            width: 100%;
+            height: 100%;
+            visible: root.current-page == Page.discover;
+          }
 
-                    InstancesView {
-                        x: 0;
-                        y: 0;
-                        width: 100%;
-                        height: 100%;
-                        visible: root.current-page == Page.instances;
-                    }
-
-                    AccountView {
-                        x: 0;
-                        y: 0;
-                        width: 100%;
-                        height: 100%;
-                        visible: root.current-page == Page.account;
-                    }
-
-                    DiscoverView {
-                        x: 0;
-                        y: 0;
-                        width: 100%;
-                        height: 100%;
-                        visible: root.current-page == Page.discover;
-                    }
-
-                    SettingsView {
-                        x: 0;
-                        y: 0;
-                        width: 100%;
-                        height: 100%;
-                        visible: root.current-page == Page.settings;
-                    }
-                }
-            }
+          SettingsView {
+            x: 0;
+            y: 0;
+            width: 100%;
+            height: 100%;
+            visible: root.current-page == Page.settings;
+          }
         }
+      }
     }
+  }
 }

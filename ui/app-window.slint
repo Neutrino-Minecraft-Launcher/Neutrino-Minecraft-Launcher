@@ -8,23 +8,24 @@ export { AccountKind, SkinType } from "models/enums.slint";
 export { AccountInfo } from "models/account.slint";
 export { InstanceInfo, ContentFile } from "models/instance.slint";
 export { JavaInfo } from "models/java.slint";
+export { LoaderInfo } from "models/loader.slint";
 export { VersionInfo } from "models/version.slint";
 export { ProjectInfo } from "models/project.slint";
 
 export component AppWindow inherits Window {
-    title: "Neutrino Minecraft Launcher";
-    preferred-width: 1120px;
-    preferred-height: 720px;
-    min-width: 900px;
-    min-height: 600px;
-    full-screen: false;
-    no-frame: false;
-    background: #0f1115;
-    default-font-family: "HarmonyOS Sans SC";
-    default-font-size: 13px;
+  title: "Neutrino Minecraft Launcher";
+  preferred-width: 1120px;
+  preferred-height: 720px;
+  min-width: 900px;
+  min-height: 600px;
+  full-screen: false;
+  no-frame: false;
+  background: #0f1115;
+  default-font-family: "HarmonyOS Sans SC";
+  default-font-size: 14px;
 
-    AppShell {
-        width: 100%;
-        height: 100%;
-    }
+  AppShell {
+    width: 100%;
+    height: 100%;
+  }
 }

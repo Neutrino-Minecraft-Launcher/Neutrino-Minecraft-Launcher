@@ -2,87 +2,87 @@ import { Palette } from "std-widgets.slint";
 import { AppState } from "../state/app-state.slint";
 
 component InfoCard inherits Rectangle {
-    in property <string> title;
-    in property <string> subtitle;
-    in property <image> icon;
+  in property <string> title;
+  in property <string> subtitle;
+  in property <image> icon;
 
-    width: 196px;
-    height: 88px;
-    border-radius: 6px;
-    background: Palette.background.with-alpha(0.94);
-    border-width: 1px;
-    border-color: Palette.foreground.with-alpha(0.08);
-    drop-shadow-color: rgba(0, 0, 0, 0.18);
-    drop-shadow-blur: 16px;
-    drop-shadow-offset-y: 6px;
+  width: 196px;
+  height: 88px;
+  border-radius: 6px;
+  background: Palette.background.with-alpha(0.94);
+  border-width: 1px;
+  border-color: Palette.foreground.with-alpha(0.08);
+  drop-shadow-color: rgba(0, 0, 0, 0.18);
+  drop-shadow-blur: 16px;
+  drop-shadow-offset-y: 6px;
 
-    HorizontalLayout {
-        padding: 14px;
-        spacing: 12px;
-        cross-axis-alignment: center;
+  HorizontalLayout {
+    padding: 14px;
+    spacing: 12px;
+    cross-axis-alignment: center;
 
-        Rectangle {
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            background: Palette.accent-background.with-alpha(0.14);
+    Rectangle {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background: Palette.accent-background.with-alpha(0.14);
 
-            Image {
-                source: root.icon;
-                width: 20px;
-                height: 20px;
-                colorize: Palette.accent-background;
-            }
-        }
-
-        VerticalLayout {
-            alignment: center;
-            spacing: 3px;
-
-            Text {
-                text: root.title;
-                color: Palette.foreground.with-alpha(0.62);
-                font-size: 12px;
-            }
-
-            Text {
-                text: root.subtitle;
-                color: Palette.foreground;
-                font-size: 15px;
-                font-weight: 600;
-            }
-        }
+      Image {
+        source: root.icon;
+        width: 20px;
+        height: 20px;
+        colorize: Palette.accent-background;
+      }
     }
+
+    VerticalLayout {
+      alignment: center;
+      spacing: 3px;
+
+      Text {
+        text: root.title;
+        color: Palette.foreground.with-alpha(0.62);
+        font-size: 12px;
+      }
+
+      Text {
+        text: root.subtitle;
+        color: Palette.foreground;
+        font-size: 15px;
+        font-weight: 600;
+      }
+    }
+  }
 }
 
 export component LaunchView inherits Rectangle {
-    background: transparent;
+  background: transparent;
 
-    VerticalLayout {
-        padding: 24px;
-        spacing: 8px;
+  VerticalLayout {
+    padding: 24px;
+    spacing: 8px;
 
-        Rectangle {
-            vertical-stretch: 1;
-        }
-
-        HorizontalLayout {
-            alignment: end;
-            spacing: 12px;
-
-            InfoCard {
-                title: "角色";
-                subtitle: AppState.active-account == ""
-                    ? "未选择角色"
-                    : AppState.active-account;
-                icon: @image-url("../images/icons/account.svg");
-            }
-
-            InfoCard {
-                title: "实例";
-                subtitle: "未选择实例";
-                icon: @image-url("../images/icons/instance.svg");
-            }
-        }
+    Rectangle {
+      vertical-stretch: 1;
     }
+
+    HorizontalLayout {
+      alignment: end;
+      spacing: 12px;
+
+      InfoCard {
+        title: "角色";
+        subtitle: AppState.active-account == ""
+          ? "未选择角色"
+          : AppState.active-account;
+        icon: @image-url("../images/icons/account.svg");
+      }
+
+      InfoCard {
+        title: "实例";
+        subtitle: "未选择实例";
+        icon: @image-url("../images/icons/instance.svg");
+      }
+    }
+  }
 }

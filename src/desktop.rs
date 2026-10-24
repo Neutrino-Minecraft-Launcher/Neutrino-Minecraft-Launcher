@@ -7,17 +7,18 @@
 //!   `InstallController`（内部全是 `Arc<Mutex<_>>`），满足 `Send + Sync`。
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use neutrino_minecraft_launcher::core::{
-    DEFAULT_MANIFEST_URL, Downloader, GamePaths, InstallOptions, InstallReport, Progress,
-    VersionManifest, default_game_dir, install,
+    DEFAULT_MANIFEST_URL, Downloader, GamePaths, InstallReport, InstanceInstallOptions, LoaderKind,
+    Progress, VersionManifest, default_game_dir, install_instance, loader,
     modrinth::{self, ContentKind, ProjectHit},
 };
 use neutrino_minecraft_launcher::instances;
 use slint::{ComponentHandle, ModelRc, VecModel};
 
-use crate::{AppState, AppWindow, InstanceInfo, ProjectInfo, VersionInfo};
+use crate::{AppState, AppWindow, InstanceInfo, LoaderInfo, ProjectInfo, VersionInfo};
 
 /// 版本列表的筛选条件。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,18 +159,31 @@ impl InstallController {
             let downloader = Downloader::new(Progress::silent());
             match modrinth::search(&downloader, kind, 30) {
                 Ok(response) => {
-                    let items: Vec<ProjectInfo> = response
-                        .hits
-                        .iter()
-                        .map(|hit| to_project_info(hit, kind))
-                        .collect();
+                    let icon_bytes = load_project_icon_bytes(&response.hits);
+                    let hits = response.hits;
                     let summary = format!(
                         "Modrinth 共 {} 个{}",
                         short_number(response.total_hits),
                         content_label(kind)
                     );
 
+                    // 解码放在后台线程（`image` 在 debug 下很慢）；`slint::Image`
+                    // 不是 Send，所以只在 UI 线程把 RGBA 拷成图片。
+                    let icons = icon_bytes
+                        .into_iter()
+                        .map(|bytes| bytes.and_then(|bytes| crate::image_util::decode_rgba(&bytes)))
+                        .collect::<Vec<_>>();
+
                     this.on_ui(move |ui| {
+                        let items: Vec<ProjectInfo> = hits
+                            .iter()
+                            .zip(icons)
+                            .map(|(hit, icon)| {
+                                let icon = icon.map(|image| crate::image_util::from_rgba(&image));
+                                to_project_info(hit, kind, icon)
+                            })
+                            .collect();
+
                         let state = ui.global::<AppState>();
                         state.set_projects(ModelRc::new(VecModel::from(items)));
                         state.set_projects_summary(summary.into());
@@ -246,8 +260,146 @@ impl InstallController {
         });
     }
 
-    /// 在后台安装指定版本。
-    pub fn install(&self, version: &str) {
+    /// 重置“添加实例”向导。
+    pub fn reset_add_instance(&self) {
+        self.on_ui(|ui| {
+            let state = ui.global::<AppState>();
+            state.set_add_step("versions".into());
+            state.set_pending_version("".into());
+            state.set_pending_loader("".into());
+            state.set_pending_loader_version("".into());
+            state.set_instance_name("".into());
+            state.set_loader_versions(ModelRc::new(VecModel::from(Vec::<LoaderInfo>::new())));
+            state.set_loader_versions_loading(false);
+            state.set_loader_versions_error("".into());
+            state.set_install_message("".into());
+        });
+    }
+
+    /// 选中一个原版版本，进入加载器选择。
+    pub fn choose_version(&self, version: &str) {
+        let version = version.to_string();
+        let name = loader::default_instance_name(&version, None);
+
+        self.on_ui(move |ui| {
+            let state = ui.global::<AppState>();
+            state.set_add_step("loader".into());
+            state.set_pending_version(version.into());
+            state.set_pending_loader("".into());
+            state.set_pending_loader_version("".into());
+            state.set_instance_name(name.into());
+            state.set_install_message("".into());
+        });
+    }
+
+    /// 选择加载器；空字符串表示跳过。
+    pub fn choose_loader(&self, key: &str) {
+        let Some(kind) = LoaderKind::parse(key) else {
+            let version = self
+                .with_ui(|ui| ui.global::<AppState>().get_pending_version())
+                .unwrap_or_default();
+            let name = loader::default_instance_name(&version, None);
+
+            self.on_ui(move |ui| {
+                let state = ui.global::<AppState>();
+                state.set_pending_loader("".into());
+                state.set_pending_loader_version("".into());
+                state.set_instance_name(name.into());
+                state.set_add_step("name".into());
+                state.set_install_message("".into());
+            });
+            return;
+        };
+
+        let version = self
+            .with_ui(|ui| ui.global::<AppState>().get_pending_version())
+            .unwrap_or_default();
+        let default_name = loader::default_instance_name(&version, Some(kind));
+
+        self.on_ui(move |ui| {
+            let state = ui.global::<AppState>();
+            state.set_pending_loader(kind.key().into());
+            state.set_pending_loader_version("".into());
+            state.set_instance_name(default_name.into());
+            state.set_add_step("loader-version".into());
+            state.set_loader_versions_loading(true);
+            state.set_loader_versions_error("".into());
+            state.set_loader_versions(ModelRc::new(VecModel::from(Vec::<LoaderInfo>::new())));
+            state.set_install_message("".into());
+        });
+
+        let this = self.clone();
+        std::thread::spawn(move || {
+            let downloader = Downloader::new(Progress::silent());
+            let result = loader::loader_versions(&downloader, kind, &version);
+
+            this.on_ui(move |ui| {
+                let state = ui.global::<AppState>();
+                // 用户可能已经返回并换了加载器/版本，丢弃过期结果。
+                if state.get_pending_loader() != kind.key()
+                    || state.get_pending_version() != version
+                {
+                    return;
+                }
+                state.set_loader_versions_loading(false);
+                match result {
+                    Ok(versions) => {
+                        let items: Vec<LoaderInfo> = versions
+                            .into_iter()
+                            .map(|item| LoaderInfo {
+                                kind: kind.key().into(),
+                                name: kind.name().into(),
+                                version: item.version.into(),
+                                stable: item.stable,
+                            })
+                            .collect();
+                        state.set_loader_versions(ModelRc::new(VecModel::from(items)));
+                    }
+                    Err(err) => {
+                        state.set_loader_versions_error(
+                            format!("获取 {} 版本失败：{err}", kind.name()).into(),
+                        );
+                    }
+                }
+            });
+        });
+    }
+
+    /// 选中加载器版本，进入实例命名。
+    pub fn choose_loader_version(&self, version: &str) {
+        let version = version.to_string();
+        self.on_ui(move |ui| {
+            let state = ui.global::<AppState>();
+            state.set_pending_loader_version(version.into());
+            state.set_add_step("name".into());
+            state.set_install_message("".into());
+        });
+    }
+
+    /// 向导返回上一步。
+    pub fn go_back(&self) {
+        let Some((step, loader)) = self.with_ui(|ui| {
+            let state = ui.global::<AppState>();
+            (
+                state.get_add_step().to_string(),
+                state.get_pending_loader().to_string(),
+            )
+        }) else {
+            return;
+        };
+
+        let next = match step.as_str() {
+            "name" if loader.is_empty() => "loader",
+            "name" => "loader-version",
+            "loader-version" => "loader",
+            _ => "versions",
+        };
+
+        self.on_ui(move |ui| ui.global::<AppState>().set_add_step(next.into()));
+    }
+
+    /// 按当前向导状态创建实例。
+    pub fn create_instance(&self, instance_name: &str) {
         let Some(ui) = self.upgrade() else {
             return;
         };
@@ -256,8 +408,23 @@ impl InstallController {
         if state.get_installing() {
             return;
         }
+
+        let version = state.get_pending_version().to_string();
+        let loader_key = state.get_pending_loader().to_string();
+        let loader_version = state.get_pending_loader_version().to_string();
+        let instance = instance_name.trim().to_string();
+        let loader_kind = LoaderKind::parse(&loader_key);
+
+        if let Some(message) =
+            validate_instance(&version, &instance, loader_kind.is_some(), &loader_version)
+        {
+            state.set_install_ok(false);
+            state.set_install_message(message.into());
+            return;
+        }
+
         state.set_installing(true);
-        state.set_installing_version(version.into());
+        state.set_installing_version(version.clone().into());
         state.set_install_progress(0.0);
         state.set_install_progress_text("0%".into());
         state.set_install_stage("准备中…".into());
@@ -266,11 +433,12 @@ impl InstallController {
         drop(ui);
 
         let this = self.clone();
-        let target = version.to_string();
+        let mut options =
+            InstanceInstallOptions::new(default_game_dir(), instance.clone(), version.clone());
+        options.loader = loader_kind;
+        options.loader_version = loader_kind.map(|_| loader_version);
 
         std::thread::spawn(move || {
-            let options = InstallOptions::new(default_game_dir(), target.clone());
-
             let progress = {
                 let this = this.clone();
                 Progress::new(move |snapshot| {
@@ -286,34 +454,32 @@ impl InstallController {
                 })
             };
 
-            let outcome = install(&options, &progress);
-            this.finish_install(&target, outcome);
+            let outcome = install_instance(&options, &progress);
+            this.finish_instance_install(&instance, outcome);
         });
     }
 
-    fn finish_install(
+    fn finish_instance_install(
         &self,
-        version: &str,
+        instance: &str,
         outcome: Result<InstallReport, impl std::fmt::Display>,
     ) {
         let (ok, message) = match &outcome {
             Ok(report) => (
                 true,
                 format!(
-                    "{} 安装完成：{} 个依赖库，{} 个资源文件，用时 {:.1}s",
-                    report.version,
+                    "实例「{instance}」创建完成：{} 个依赖库，{} 个资源文件，用时 {:.1}s",
                     report.library_count,
                     report.asset_count,
                     report.elapsed.as_secs_f64()
                 ),
             ),
-            Err(err) => (false, format!("{version} 安装失败：{err}")),
+            Err(err) => (false, format!("实例「{instance}」创建失败：{err}")),
         };
 
         // 安装会往 versions/ 里写目录，顺手把实例列表刷新掉
         let game_dir = default_game_dir();
         let instance_items = to_instance_infos(&game_dir.display().to_string());
-        let version_items = self.build_items();
 
         self.on_ui(move |ui| {
             let state = ui.global::<AppState>();
@@ -325,15 +491,17 @@ impl InstallController {
             if ok {
                 state.set_install_progress(1.0);
                 state.set_install_progress_text("100%".into());
+                state.set_add_step("versions".into());
+                state.set_pending_version("".into());
+                state.set_pending_loader("".into());
+                state.set_pending_loader_version("".into());
+                state.set_instance_name("".into());
             } else {
                 state.set_install_progress(0.0);
                 state.set_install_progress_text("".into());
             }
 
             state.set_instances(ModelRc::new(VecModel::from(instance_items)));
-            if let Some(items) = version_items {
-                state.set_versions(ModelRc::new(VecModel::from(items)));
-            }
         });
     }
 
@@ -363,16 +531,6 @@ impl InstallController {
         });
     }
 
-    fn build_items(&self) -> Option<Vec<VersionInfo>> {
-        let manifest = self.manifest.lock().ok().and_then(|guard| guard.clone())?;
-        let filter = self
-            .filter
-            .lock()
-            .map(|guard| *guard)
-            .unwrap_or(Filter::Release);
-        Some(build_version_items(&manifest, filter))
-    }
-
     fn loading(&self) -> bool {
         self.with_ui(|ui| ui.global::<AppState>().get_versions_loading())
             .unwrap_or(true)
@@ -397,9 +555,58 @@ impl InstallController {
     }
 }
 
-fn build_version_items(manifest: &VersionManifest, filter: Filter) -> Vec<VersionInfo> {
-    let paths = GamePaths::new(default_game_dir());
+/// 校验实例名；返回错误提示（`None` 表示通过）。
+fn validate_instance(
+    version: &str,
+    instance: &str,
+    has_loader: bool,
+    loader_version: &str,
+) -> Option<String> {
+    if version.is_empty() {
+        return Some("没有选择 Minecraft 版本".to_string());
+    }
+    if instance.is_empty() {
+        return Some("实例名不能为空".to_string());
+    }
+    if instance.chars().count() > 64 {
+        return Some("实例名不能超过 64 个字符".to_string());
+    }
+    if instance.chars().any(|ch| {
+        matches!(ch, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') || ch.is_control()
+    }) {
+        return Some("实例名不能包含 / \\ : * ? \" < > | 等字符".to_string());
+    }
+    if instance.starts_with('.') || instance.ends_with('.') || instance.ends_with(' ') {
+        return Some("实例名不能以点开头/结尾，也不能以空格结尾".to_string());
+    }
 
+    const RESERVED: [&str; 22] = [
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
+        "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    ];
+    if RESERVED
+        .iter()
+        .any(|name| instance.eq_ignore_ascii_case(name))
+    {
+        return Some("这个名称是 Windows 保留名".to_string());
+    }
+
+    if has_loader && instance == version {
+        return Some("带加载器的实例名不能和原版版本号相同".to_string());
+    }
+    if has_loader && loader_version.is_empty() {
+        return Some("没有选择加载器版本".to_string());
+    }
+
+    let json = GamePaths::new(default_game_dir()).version_json(instance);
+    if json.is_file() {
+        return Some(format!("实例「{instance}」已存在"));
+    }
+
+    None
+}
+
+fn build_version_items(manifest: &VersionManifest, filter: Filter) -> Vec<VersionInfo> {
     manifest
         .versions
         .iter()
@@ -409,7 +616,6 @@ fn build_version_items(manifest: &VersionManifest, filter: Filter) -> Vec<Versio
             kind: version.kind.clone().into(),
             kind_label: kind_label(&version.kind).into(),
             release_date: short_date(&version.release_time).into(),
-            installed: paths.version_json(&version.id).is_file(),
         })
         .collect()
 }
@@ -461,8 +667,9 @@ fn download_latest_file(project_id: &str, kind: ContentKind) -> Result<PathBuf, 
     Ok(dest)
 }
 
-fn to_project_info(hit: &ProjectHit, kind: ContentKind) -> ProjectInfo {
+fn to_project_info(hit: &ProjectHit, kind: ContentKind, icon: Option<slint::Image>) -> ProjectInfo {
     let downloadable = kind.supports_install();
+    let has_icon = icon.is_some();
 
     ProjectInfo {
         project_id: hit.project_id.clone().into(),
@@ -478,7 +685,55 @@ fn to_project_info(hit: &ProjectHit, kind: ContentKind) -> ProjectInfo {
         }
         .into(),
         downloadable,
+        icon: icon.unwrap_or_default(),
+        has_icon,
     }
+}
+
+/// 下载并缓存 Modrinth 项目图标的原始字节，返回与 `hits` 一一对应的数据。
+///
+/// 图标来自搜索结果里的 `icon_url`；缓存命中就不联网，单个失败时返回 `None`，
+/// 由界面回退到首字母头像。解码留给 UI 线程（`slint::Image` 不是 Send）。
+fn load_project_icon_bytes(hits: &[ProjectHit]) -> Vec<Option<Vec<u8>>> {
+    let dir = crate::accounts::cache_dir().join("icons");
+    let _ = std::fs::create_dir_all(&dir);
+
+    let mut jobs = Vec::new();
+    for hit in hits {
+        let Some(url) = hit.icon_url.as_deref().filter(|url| !url.is_empty()) else {
+            continue;
+        };
+        let path = dir.join(format!("{}.bin", hit.project_id));
+        if !path.is_file() {
+            jobs.push((url.to_string(), path));
+        }
+    }
+
+    if !jobs.is_empty() {
+        // 图标小、数量多，开几个线程并发下载；失败的直接忽略。
+        let workers = 4.min(jobs.len());
+        let next = AtomicUsize::new(0);
+        std::thread::scope(|scope| {
+            for _ in 0..workers {
+                scope.spawn(|| {
+                    let downloader = Downloader::new(Progress::silent());
+                    loop {
+                        let index = next.fetch_add(1, Ordering::Relaxed);
+                        let Some((url, path)) = jobs.get(index) else {
+                            break;
+                        };
+                        if let Ok(bytes) = downloader.get_bytes(url) {
+                            let _ = std::fs::write(path, &bytes);
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    hits.iter()
+        .map(|hit| std::fs::read(dir.join(format!("{}.bin", hit.project_id))).ok())
+        .collect()
 }
 
 fn content_label(kind: ContentKind) -> &'static str {

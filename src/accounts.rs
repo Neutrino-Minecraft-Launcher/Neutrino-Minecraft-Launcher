@@ -222,7 +222,12 @@ fn skins_dir() -> PathBuf {
     data_dir().join("skins")
 }
 
-fn data_dir() -> PathBuf {
+/// 启动器缓存目录（图标等）。
+pub(crate) fn cache_dir() -> PathBuf {
+    data_dir().join("cache")
+}
+
+pub(crate) fn data_dir() -> PathBuf {
     if cfg!(windows) {
         std::env::var_os("APPDATA")
             .map(PathBuf::from)

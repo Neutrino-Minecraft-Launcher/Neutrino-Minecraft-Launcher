@@ -87,6 +87,9 @@ pub struct ProjectHit {
     pub project_type: String,
     #[serde(default)]
     pub downloads: u64,
+    /// 项目图标的 CDN 地址（可能为空）。
+    #[serde(default)]
+    pub icon_url: Option<String>,
 }
 
 /// 项目的一个版本。
@@ -192,7 +195,8 @@ mod tests {
             "author": "modmuss50",
             "categories": ["fabric", "library"],
             "project_type": "mod",
-            "downloads": 286109303
+            "downloads": 286109303,
+            "icon_url": "https://cdn.modrinth.com/data/P7dR8mSH/icon.png"
           }],
           "total_hits": 12345
         }"#;
@@ -200,6 +204,10 @@ mod tests {
         assert_eq!(parsed.total_hits, 12345);
         assert_eq!(parsed.hits[0].title, "Fabric API");
         assert_eq!(parsed.hits[0].downloads, 286109303);
+        assert_eq!(
+            parsed.hits[0].icon_url.as_deref(),
+            Some("https://cdn.modrinth.com/data/P7dR8mSH/icon.png")
+        );
     }
 
     #[test]

@@ -68,7 +68,7 @@ pub struct DownloadStats {
 /// HTTP 下载器。内部持有一个连接池可复用的 agent，可安全地跨线程共享。
 #[derive(Clone)]
 pub struct Downloader {
-    agent: ureq2::Agent,
+    agent: ureq::Agent,
     progress: Progress,
     retries: u32,
 }
@@ -76,11 +76,13 @@ pub struct Downloader {
 impl Downloader {
     /// 创建下载器。
     pub fn new(progress: Progress) -> Self {
-        let agent = ureq2::AgentBuilder::new()
+        let agent = ureq::Agent::config_builder()
             .user_agent(USER_AGENT)
-            .timeout_connect(Duration::from_secs(15))
-            .timeout_read(Duration::from_secs(60))
-            .build();
+            .timeout_connect(Some(Duration::from_secs(15)))
+            // 单次读超时：大文件下载时只要持续有数据就不会中断。
+            .timeout_per_read(Some(Duration::from_secs(60)))
+            .build()
+            .new_agent();
 
         Self {
             agent,
@@ -97,14 +99,17 @@ impl Downloader {
 
     /// 取回原始字节。
     pub fn get_bytes(&self, url: &str) -> Result<Vec<u8>> {
+        // 资源索引 JSON 可能有好几 MB，默认 10 MB 上限太紧，这里放宽到 64 MB。
+        const MAX_BYTES: u64 = 64 * 1024 * 1024;
+
         self.retry(|| {
-            let response = self.request(url)?;
-            let mut buffer = Vec::new();
+            let mut response = self.request(url)?;
             response
-                .into_reader()
-                .read_to_end(&mut buffer)
-                .map_err(|err| CoreError::Network(format!("读取 {url} 的响应失败：{err}")))?;
-            Ok(buffer)
+                .body_mut()
+                .with_config()
+                .limit(MAX_BYTES)
+                .read_to_vec()
+                .map_err(|err| CoreError::Network(format!("读取 {url} 的响应失败：{err}")))
         })
     }
 
@@ -206,16 +211,14 @@ impl Downloader {
         Ok(stats.into_inner().unwrap_or_default())
     }
 
-    fn request(&self, url: &str) -> Result<ureq2::Response> {
+    fn request(&self, url: &str) -> Result<ureq::http::Response<ureq::Body>> {
         match self.agent.get(url).call() {
             Ok(response) => Ok(response),
-            Err(ureq2::Error::Status(status, _)) => Err(CoreError::HttpStatus {
+            Err(ureq::Error::StatusCode(status)) => Err(CoreError::HttpStatus {
                 status,
                 url: url.to_string(),
             }),
-            Err(ureq2::Error::Transport(transport)) => {
-                Err(CoreError::Network(format!("{transport}（{url}）")))
-            }
+            Err(err) => Err(CoreError::Network(format!("{err}（{url}）"))),
         }
     }
 
@@ -228,7 +231,9 @@ impl Downloader {
 
         let mut hasher = Sha1::new();
         {
-            let mut reader = self.progress.counting_reader(response.into_reader());
+            let mut reader = self
+                .progress
+                .counting_reader(response.into_body().into_reader());
             let mut file = File::create(&tmp).map_err(|err| io_err(&tmp, err))?;
             let mut buffer = [0u8; 64 * 1024];
 

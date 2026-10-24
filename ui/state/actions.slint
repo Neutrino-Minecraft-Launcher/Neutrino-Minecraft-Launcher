@@ -1,25 +1,37 @@
 import { SkinType } from "../models/enums.slint";
 
 export global Actions {
-    callback open-folder(string);
-    callback open-url(string);
-    callback load-instance-content(string);
-    callback add-offline-account(string) -> string;
-    callback remove-account(string);
-    callback set-active-account(string);
-    callback set-default-skin(string, SkinType);
-    callback choose-custom-skin(string);
-    callback start-microsoft-login();
+  callback open-folder(string);
+  callback open-url(string);
+  callback load-instance-content(string);
+  /// 启动指定实例（版本 id）
+  callback launch-instance(string);
+  callback add-offline-account(string) -> string;
+  callback remove-account(string);
+  callback set-active-account(string);
+  callback set-default-skin(string, SkinType);
+  callback choose-custom-skin(string);
+  callback start-microsoft-login();
 
-    /// 重新拉取版本清单（会走网络）
-    callback refresh-versions();
-    /// 切换原版版本的筛选条件，取值为 "release" / "snapshot" / "all"
-    callback filter-versions(string);
-    /// 安装指定原版版本
-    callback install-version(string);
+  /// 重新拉取版本清单（会走网络）
+  callback refresh-versions();
+  /// 切换原版版本的筛选条件，取值为 "release" / "snapshot" / "all"
+  callback filter-versions(string);
+  /// 添加实例向导：选中要安装的原版版本
+  callback choose-version(string);
+  /// 选择模组加载器；空字符串表示跳过
+  callback choose-loader(string);
+  /// 选择加载器版本
+  callback choose-loader-version(string);
+  /// 向导返回上一步
+  callback go-back();
+  /// 重置向导（回到版本列表）
+  callback reset-add-instance();
+  /// 按当前向导状态和输入的名字创建实例
+  callback create-instance(string);
 
-    /// 切换发现页类别：vanilla / mod / shader / resourcepack / modpack
-    callback open-category(string);
-    /// 下载（安装）指定项目到对应目录
-    callback download-project(string);
+  /// 切换发现页类别：vanilla / mod / shader / resourcepack / modpack
+  callback open-category(string);
+  /// 下载（安装）指定项目到对应目录
+  callback download-project(string);
 }

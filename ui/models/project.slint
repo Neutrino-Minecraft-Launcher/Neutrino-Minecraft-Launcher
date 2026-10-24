@@ -1,14 +1,17 @@
 export struct ProjectInfo {
-    project-id: string,
-    title: string,
-    /// 首字母头像用的字符
-    initial: string,
-    /// 作者 · 下载量
-    subtitle: string,
-    description: string,
-    /// 主标签（加载器 / 分类），展示用
-    tag: string,
-    /// 按钮文案：下载 / 暂不支持
-    action-label: string,
-    downloadable: bool,
+  project-id: string,
+  title: string,
+  /// 首字母头像用的字符
+  initial: string,
+  /// 作者 · 下载量
+  subtitle: string,
+  description: string,
+  /// 主标签（加载器 / 分类），展示用
+  tag: string,
+  /// 按钮文案：下载 / 暂不支持
+  action-label: string,
+  downloadable: bool,
+  /// 项目图标（下载失败时为空，用首字母头像兜底）
+  icon: image,
+  has-icon: bool,
 }

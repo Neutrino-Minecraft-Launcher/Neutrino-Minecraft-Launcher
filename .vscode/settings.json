@@ -9,8 +9,5 @@
   "editor.tabSize": 2,
   "[rust]": {
     "editor.tabSize": 4
-  },
-  "[slint]": {
-    "editor.tabSize": 4
   }
 }

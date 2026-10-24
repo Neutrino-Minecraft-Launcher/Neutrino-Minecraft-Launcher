@@ -3,55 +3,55 @@ import { Palette } from "std-widgets.slint";
 // A single navigation item. The floating card background belongs to TopBar;
 // this component only paints its own hover/selected pill.
 export component NavItem inherits Rectangle {
-    in property <string> label;
-    in property <image> icon;
-    in property <bool> selected;
-    in property <bool> enabled: true;
+  in property <string> label;
+  in property <image> icon;
+  in property <bool> selected;
+  in property <bool> enabled: true;
 
-    callback clicked();
+  callback clicked();
 
-    min-width: 92px;
-    height: 36px;
-    border-radius: 6px;
-    horizontal-stretch: 0;
-    background: root.selected
-        ? Palette.accent-background.with-alpha(0.14)
-        : touch.has-hover && root.enabled
-            ? Palette.foreground.with-alpha(0.06)
-            : transparent;
+  min-width: 92px;
+  height: 36px;
+  border-radius: 6px;
+  horizontal-stretch: 0;
+  background: root.selected
+    ? Palette.accent-background.with-alpha(0.14)
+    : touch.has-hover && root.enabled
+      ? Palette.foreground.with-alpha(0.06)
+      : transparent;
 
-    HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
-        spacing: 7px;
-        alignment: center;
-        cross-axis-alignment: center;
+  HorizontalLayout {
+    padding-left: 12px;
+    padding-right: 12px;
+    spacing: 7px;
+    alignment: center;
+    cross-axis-alignment: center;
 
-        Image {
-            source: root.icon;
-            width: 16px;
-            height: 16px;
-            colorize: root.enabled
-                ? Palette.foreground
-                : Palette.foreground.with-alpha(0.4);
-        }
-
-        Text {
-            text: root.label;
-            color: root.enabled
-                ? Palette.foreground
-                : Palette.foreground.with-alpha(0.4);
-            font-size: 13px;
-            font-weight: root.selected ? 600 : 400;
-            vertical-alignment: center;
-        }
+    Image {
+      source: root.icon;
+      width: 16px;
+      height: 16px;
+      colorize: root.enabled
+        ? Palette.foreground
+        : Palette.foreground.with-alpha(0.4);
     }
 
-    touch := TouchArea {
-        enabled: root.enabled;
-        mouse-cursor: pointer;
-        clicked => {
-            root.clicked();
-        }
+    Text {
+      text: root.label;
+      color: root.enabled
+        ? Palette.foreground
+        : Palette.foreground.with-alpha(0.4);
+      font-size: 13px;
+      font-weight: root.selected ? 600 : 400;
+      vertical-alignment: center;
     }
+  }
+
+  touch := TouchArea {
+    enabled: root.enabled;
+    mouse-cursor: pointer;
+    clicked => {
+      root.clicked();
+    }
+  }
 }

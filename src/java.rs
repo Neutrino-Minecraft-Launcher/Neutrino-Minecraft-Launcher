@@ -18,6 +18,13 @@ pub struct JavaInstallation {
     pub path: String,
 }
 
+impl JavaInstallation {
+    /// `java.home` 下的 `java` / `java.exe` 可执行文件。
+    pub fn executable(&self) -> PathBuf {
+        Path::new(&self.path).join("bin").join(java_binary())
+    }
+}
+
 pub fn detect_java() -> Option<JavaInstallation> {
     let mut seen = HashSet::new();
 

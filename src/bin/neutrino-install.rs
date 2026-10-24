@@ -23,8 +23,8 @@ use std::sync::{Arc, Mutex};
 use neutrino_minecraft_launcher::core::manifest::VersionKind;
 use neutrino_minecraft_launcher::core::progress::{Progress, ProgressSnapshot};
 use neutrino_minecraft_launcher::core::{
-    CoreError, Downloader, GamePaths, InstallOptions, InstallReport, VersionManifest,
-    default_game_dir, install,
+    CoreError, Downloader, InstallOptions, InstallReport, VersionManifest, default_game_dir,
+    install,
 };
 
 const HELP: &str = "\
@@ -229,7 +229,6 @@ fn run_list(args: &Args, kind: VersionKind) -> Result<(), CoreError> {
     let downloader = Downloader::new(Progress::silent());
     let manifest: VersionManifest = downloader.get_json(args.manifest(), "版本清单")?;
     let versions = manifest.filter(kind);
-    let paths = GamePaths::new(&args.game_dir);
 
     println!(
         "版本清单共 {} 个（最新正式版 {}，最新快照 {}）\n",
@@ -237,25 +236,18 @@ fn run_list(args: &Args, kind: VersionKind) -> Result<(), CoreError> {
         manifest.latest.release,
         manifest.latest.snapshot
     );
-    println!("版本              类型        发布时间            本地状态");
-    println!("{}", "-".repeat(62));
+    println!("版本              类型        发布时间");
+    println!("{}", "-".repeat(50));
 
     for version in versions {
-        let installed = if paths.version_json(&version.id).is_file() {
-            "已安装"
-        } else {
-            ""
-        };
-
         println!(
-            "{:<18}{:<12}{:<20}{}",
+            "{:<18}{:<12}{}",
             version.id,
             version.kind,
             version
                 .release_time
                 .get(..19)
                 .unwrap_or(version.release_time.as_str()),
-            installed
         );
     }
 

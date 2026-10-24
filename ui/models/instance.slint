@@ -1,10 +1,17 @@
 export struct InstanceInfo {
-    name: string,
-    path: string
+  name: string,
+  path: string
 }
 
 export struct ContentFile {
-    name: string,
-    size: int,
-    enabled: bool
+  name: string,
+  size: int,
+  enabled: bool,
+  /// 从 jar / 资源包中读出的图标（没有时为空，用通用图标兜底）
+  icon: image,
+  has-icon: bool,
+  /// 模组版本（资源包 / 光影为空）
+  version: string,
+  /// 模组加载器：Fabric / Quilt / Forge / NeoForge（没有时为空）
+  loader: string
 }

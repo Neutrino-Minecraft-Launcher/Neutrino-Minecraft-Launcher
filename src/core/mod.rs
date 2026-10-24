@@ -3,6 +3,8 @@
 pub mod error;
 pub mod hash;
 pub mod install;
+pub mod launch;
+pub mod loader;
 pub mod manifest;
 pub mod modrinth;
 pub mod natives;
@@ -11,7 +13,11 @@ pub mod paths;
 pub mod progress;
 
 pub use error::{CoreError, Result};
-pub use install::{InstallOptions, InstallReport, install};
+pub use install::{
+    InstallOptions, InstallReport, InstanceInstallOptions, install, install_instance,
+};
+pub use launch::{LaunchAccount, LaunchCommand, LaunchOptions, offline_uuid};
+pub use loader::{LoaderKind, LoaderVersion};
 pub use manifest::{VersionJson, VersionManifest, VersionSummary};
 pub use modrinth::{ContentKind, ProjectHit, ProjectVersion, SearchResponse, VersionFile};
 pub use net::{DownloadJob, DownloadOutcome, DownloadStats, Downloader};

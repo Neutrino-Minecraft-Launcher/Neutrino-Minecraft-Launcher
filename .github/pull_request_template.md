@@ -8,9 +8,9 @@
 
 ## Verification
 
-- [ ] `cargo fmt --check`
-- [ ] `cargo clippy -- -D warnings`
-- [ ] `cargo test`
+- [ ] `cargo fmt --all -- --check`
+- [ ] `cargo clippy --all-targets --all-features -- -D warnings`
+- [ ] `cargo test --all-targets --all-features`
 - [ ] UI changes verified with `cargo run` or `slint-viewer`
 - [ ] Screenshots attached for visible UI changes
 

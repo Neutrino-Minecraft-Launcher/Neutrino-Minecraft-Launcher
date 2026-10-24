@@ -19,11 +19,11 @@ path = "src/bin/neutrino-install.rs"
 
 [dependencies]
 dotenvy = "0.15"
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
+md-5 = "0.11.0"
 minecraft-msa-auth = { version = "0.5.0", features = ["is_sync", "ureq"] }
 oauth2 = { version = "5.0.0", features = ["reqwest-blocking"] }
 rfd = { version = "0.17.2", default-features = false }
-rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha1 = "0.11.0"
@@ -40,15 +40,22 @@ slint = { version = "1.18.1", default-features = false, features = [
     "renderer-software",
     "compat-1-2",
 ] }
-# MSA 登录用 ureq 3（`body_mut().read_json()` 是 v3 API）；
-# 安装核心 core/net.rs 仍用 ureq 2 的 API，通过包名重命名共存。
+# MSA 登录和安装核心 core/net.rs 共用 ureq 3。
 ureq = { version = "3", features = ["json"] }
-ureq2 = { package = "ureq", version = "2" }
 zip = { version = "9.0.5", default-features = false, features = ["deflate"] }
+wgpu = "30.0.1"
+bytemuck = { version = "1.25.2", features = ["derive"] }
 
 [build-dependencies]
 slint-build = "1.18.1"
 
+# 优化等级：0~3
+# s: 优化二进制大小
+# z：优化二进制大小,同时关闭循环向量
+[profile.dev.package."*"]
+opt-level = 2
+
 [profile.release]
+opt-level = 3
 codegen-units = 1
 lto = true

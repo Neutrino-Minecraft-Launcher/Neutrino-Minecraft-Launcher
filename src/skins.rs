@@ -26,24 +26,7 @@ fn decode_head(bytes: &[u8]) -> Option<slint::Image> {
 
     let cropped = image.view(face, face, face, face).to_image();
     let resized = image::imageops::resize(&cropped, 64, 64, image::imageops::FilterType::Nearest);
-    Some(to_slint_image(&resized))
-}
-
-fn to_slint_image(buffer: &image::RgbaImage) -> slint::Image {
-    let (width, height) = buffer.dimensions();
-    let mut pixels = slint::SharedPixelBuffer::<slint::Rgba8Pixel>::new(width, height);
-    let slice = pixels.make_mut_slice();
-
-    for (index, pixel) in buffer.pixels().enumerate() {
-        slice[index] = slint::Rgba8Pixel {
-            r: pixel[0],
-            g: pixel[1],
-            b: pixel[2],
-            a: pixel[3],
-        };
-    }
-
-    slint::Image::from_rgba8(pixels)
+    Some(crate::image_util::from_rgba(&resized))
 }
 
 fn fallback_avatar() -> slint::Image {
